@@ -6,7 +6,12 @@ Helper functions to make main.py more readable.
 
 import sys
 
-from gdpc import __url__, Editor, Box
+import numpy as np
+import matplotlib.pyplot as plt
+
+from gdpc import __url__, geometry
+from gdpc import Block, Editor, Box, Rect, WorldSlice
+from glm import ivec3
 from gdpc.exceptions import InterfaceConnectionError, BuildAreaNotSetError
 
 
@@ -28,6 +33,7 @@ def getEditor() -> Editor:
 
     return editor
 
+
 def getBuildArea(editor: Editor) -> Box:
     """ Get the build area and check if it is set. """
     
@@ -43,3 +49,27 @@ def getBuildArea(editor: Editor) -> Box:
 
     return buildArea
 
+
+def clearBuildArea(editor: Editor, center: ivec3, height: int = 10) -> None:
+    """ Clear the build area. """
+    
+    geometry.placeCuboid(
+        editor,
+        center + ivec3(-50, 0, -50),
+        center + ivec3(+50, height, +50),
+        Block("air")
+    )
+
+
+def createOverview(editor: Editor, buildRect: Rect) -> None:
+    """ Create an overview of the worldSlice loaded from the build area. """
+
+    worldSlice: WorldSlice = editor.loadWorldSlice(buildRect)
+    heightMap: np.ndarray = worldSlice.heightmaps['MOTION_BLOCKING_NO_LEAVES']
+
+    fig, ax = plt.subplots()
+    ax.imshow(heightMap, cmap='terrain')
+    plt.axis('off')
+    plt.tight_layout()
+    fig.savefig('../tmp/overview.png', dpi=300)
+    plt.close(fig)
