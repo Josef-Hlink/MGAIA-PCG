@@ -27,17 +27,21 @@ def main():
     worldSlice = editor.loadWorldSlice(buildRect)
     print(f'Getting world slice took {perf_counter() - start:.2f} seconds.')
     
+    # # get height map and define center
+    # heightMap: np.ndarray = worldSlice.heightmaps['MOTION_BLOCKING_NO_LEAVES']
+    # base = np.min(heightMap)
+    # height = np.max(heightMap) - base
+    # center = addY(buildRect.center, base)
+
+    # # excavate if necessary
+    # if height > 10:
+    #     start = perf_counter()
+    #     clearBuildArea(editor, center, height = height)
+    #     print(f'Clearing build area took {perf_counter() - start:.2f} seconds.')
+
     # get height map and define center
     heightMap: np.ndarray = worldSlice.heightmaps['MOTION_BLOCKING_NO_LEAVES']
-    base = np.min(heightMap)
-    height = np.max(heightMap) - base
-    center = addY(buildRect.center, base)
-
-    # excavate if necessary
-    if height > 10:
-        start = perf_counter()
-        clearBuildArea(editor, center, height = height)
-        print(f'Clearing build area took {perf_counter() - start:.2f} seconds.')
+    base = np.max(heightMap)
 
     # define default block palette
     palette: list[Block] = [
@@ -58,16 +62,16 @@ def main():
     towers: dict[str, Tower] = buildTowers(editor, buildRect, y = base, palette = palette)
     print(f'Building towers took {perf_counter() - start:.2f} seconds.')
 
-    # build roads between towers
+    # add entrances to towers
+    start = perf_counter()
+    for tower in towers.values():
+        tower.addEntrances()
+    print(f'Hollowing towers took {perf_counter() - start:.2f} seconds.')
+    
+    # build roads between towers' entrances
     start = perf_counter()
     buildRoads(editor, towers, palette = palette)
     print(f'Building roads took {perf_counter() - start:.2f} seconds.')
-
-    # hollow towers to clear the mess left by road construction
-    start = perf_counter()
-    for tower in towers.values():
-        tower.hollow(editor)
-    print(f'Hollowing towers took {perf_counter() - start:.2f} seconds.')
 
     # create overview image with matplotlib
     createOverview(editor, buildRect)
