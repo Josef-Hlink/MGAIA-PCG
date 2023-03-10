@@ -7,10 +7,11 @@ import numpy as np
 
 from gdpc.vector_tools import addY
 from gdpc import Block
+from glm import ivec3
 
 from helper import getEditor, getBuildArea, clearBuildArea, createOverview
-from buildings import Tower
-from builders import buildBounds, buildTowers, buildRoads
+from buildings import Tower, SuperTree
+from builders import buildBounds, buildCastle, buildTowers, buildBridges
 
 
 def main():
@@ -62,16 +63,23 @@ def main():
     towers: dict[str, Tower] = buildTowers(editor, buildRect, y = base, palette = palette)
     print(f'Building towers took {perf_counter() - start:.2f} seconds.')
 
-    # add entrances to towers
+    # find relative center of the towers
+    relativeCenter: ivec3 = sum([tower.origin for tower in towers.values()]) // 4
+
+    # place castle
     start = perf_counter()
-    for tower in towers.values():
-        tower.addEntrances()
-    print(f'Hollowing towers took {perf_counter() - start:.2f} seconds.')
+    buildCastle(editor, origin = relativeCenter, palette = palette)
+    print(f'Building castle took {perf_counter() - start:.2f} seconds.')
     
-    # build roads between towers' entrances
+    # build super tree inside castle
     start = perf_counter()
-    buildRoads(editor, towers, palette = palette)
-    print(f'Building roads took {perf_counter() - start:.2f} seconds.')
+    SuperTree(editor, origin = relativeCenter, trunkHeight = 30)
+    print(f'Building super tree took {perf_counter() - start:.2f} seconds.')
+
+    # build bridges between towers' entrances
+    start = perf_counter()
+    buildBridges(editor, towers, palette = palette)
+    print(f'Building bridges took {perf_counter() - start:.2f} seconds.')
 
     # create overview image with matplotlib
     createOverview(editor, buildRect)

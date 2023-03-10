@@ -68,20 +68,15 @@ def createOverview(editor: Editor, buildRect: Rect) -> None:
     heightMap: np.ndarray = worldSlice.heightmaps['MOTION_BLOCKING_NO_LEAVES']
     # flip horizontally
     heightMap = np.flip(heightMap, axis=0)
+    w, h = heightMap.shape
 
     fig, ax = plt.subplots()
     ax.imshow(heightMap, cmap='terrain')
-    ax.set_xticks(np.arange(0, heightMap.shape[1], 10))
-    ax.set_yticks(np.arange(0, heightMap.shape[0], 10), np.arange(heightMap.shape[0]-1, -1, -10))
+    ax.set_xticks(np.arange(0, h, 10), np.arange(-h//2+1, h//2+1, 10))
+    ax.set_yticks(np.arange(0, w, 10), np.arange(w//2, -w//2, -10))
     ax.set_xlabel('z')
     ax.set_ylabel('x')
 
-    # ax.text(0, 0, "pm", color='red', ha='center', va='center')
-    # ax.text(0, heightMap.shape[0], "mm", color='red', ha='center', va='center')
-    # ax.text(heightMap.shape[1], 0, "pp", color='red', ha='center', va='center')
-    # ax.text(heightMap.shape[1], heightMap.shape[0], "mp", color='red', ha='center', va='center')
-
-    w, h = heightMap.shape
     for label, (x, y) in zip(['pm', 'mm', 'pp', 'mp'], [(5, 5), (5, w-5), (h-5, 5), (h-5, w-5)]):
         ax.text(x, y, label, color='red', ha='center', va='center')
 

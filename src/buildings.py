@@ -4,6 +4,8 @@
 Builder functions to make main.py more readable.
 """
 
+import numpy as np
+
 from gdpc import Block, geometry, Editor
 from gdpc.minecraft_tools import signBlock
 from glm import ivec3
@@ -46,7 +48,9 @@ class Tower:
             )
         # add signpost on top of tower with district name
         self.placeSign(self.origin + ivec3(0, sum(self.heights)+1, 0), self.district.upper())
+        self.addEntrances()
         self.buildRoof()
+
 
     def buildRoof(self) -> None:
         # flat roof
@@ -176,4 +180,77 @@ class Tower:
             return self.origin + ivec3(-r, bottom-1, 0)
         else:
             raise ValueError(f'Invalid direction: {direction}')
+
+class SuperTree:
+
+    def __init__(
+            self,
+            editor: Editor,
+            origin: ivec3,
+            trunkHeight: int
+        ) -> None:
+        self.editor = editor
+        self.origin = origin
+        self.trunkHeight = trunkHeight
+
+        self.build()
+
+    def build(self) -> None:
+        self.buildLeaves()
+        self.buildTrunk()
+    
+    def buildTrunk(self) -> None:
         
+        r = 2
+        slice_ = np.ones((r*2+1, r*2+1))
+
+        dropRate = 0.8
+        for y in range(0, self.trunkHeight):
+
+            # build the slice
+            for x in range(-r, r+1):
+                for z in range(-r, r+1):
+                    if slice_[x+r, z+r]:
+                        self.editor.placeBlock(
+                            self.origin + ivec3(x, y, z),
+                            Block('spruce_log', {'axis': 'y'})
+                        )
+            # if more than one block is left, maybe drop one
+            if np.sum(slice_) > 1:
+                if np.random.rand() < 1 - dropRate:
+                    # check which indices that are True are the furthest away from the center (2,2)
+                    furthestIndices = np.argwhere(slice_ == True)
+                    furthestIndices = furthestIndices[np.argmax(np.linalg.norm(furthestIndices - (r, r), axis=1))]
+                    # if it is a single index, set it to False
+                    if furthestIndices.shape == (2,):
+                        slice_[furthestIndices[0], furthestIndices[1]] = False
+                    # if it is a list of indices, choose one of them randomly and set it to False
+                    else:
+                        furthestIndices = furthestIndices[np.random.randint(len(furthestIndices))]
+                        slice_[furthestIndices[0], furthestIndices[1]] = False
+                    
+                dropRate **= 2
+
+    def buildLeaves(self) -> None:
+
+        for x in range(-7, 8):
+            for z in range(-7, 8):
+                for y in range(self.trunkHeight-14, self.trunkHeight+3):
+                    # if the xz distance from the center is less than 7, place a leaf block
+                    if np.linalg.norm(np.array([x, z])) < 7:
+                        self.editor.placeBlock(
+                            self.origin + ivec3(x, y, z),
+                            Block('spruce_leaves')
+                        )
+
+    def buildBeacon(self) -> None:
+        
+        # place 3x3 beacon platform with diamond at y = -1
+        for x in range(-1, 2):
+            for z in range(-1, 2):
+                self.editor.placeBlock(
+                    self.origin + ivec3(x, -1, z),
+                    Block('block_of_diamond')
+                )
+
+        self.editor.placeBlock(self.origin, Block('beacon'))
