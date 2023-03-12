@@ -210,14 +210,15 @@ class TowerRoofAccess:
         
         editor.placeBlock(
             self.ladderGenerator,
-            Block('ladder', {'facing': self.facing})
+            Block('ladder', {'facing': self.notFacing})
         )
 
-        self.stairM.setFacing(self.facing)
+        # stairs sets 1 and 2 are placed in the opposite direction of self.facing
+        self.stairM.setFacing(self.notFacing)
         for stairGenerator in [self.stairGenerator1, self.stairGenerator2]:
             editor.placeBlock(stairGenerator, self.stairM)
-        # stairs set 3 is placed in the opposite direction of self.facing
-        self.stairM.setFacing({'east': 'west', 'west': 'east'}[self.facing])
+        # stairs set 3 is placed in the correct direction of self.facing
+        self.stairM.setFacing(self.facing)
         editor.placeBlock(self.stairGenerator3, self.stairM)
         
         editor.placeBlock(self.gateGenerator, self.gateM)
@@ -264,11 +265,15 @@ class TowerRoofAccess:
 
     @property
     def facing(self) -> str:
-        return {'mm': 'east', 'mp': 'east', 'pp': 'west', 'pm': 'west'}[self.district]
+        return {'w': 'west', 'e': 'east'}[self.district[1]]
+
+    @property
+    def notFacing(self) -> str:
+        return {'west': 'east', 'east': 'west'}[self.facing]
 
     @property
     def xSign(self) -> int:
-        return {'east': +1, 'west': -1}[self.facing]
+        return {'east': -1, 'west': +1}[self.facing]
 
 
 class Tower:
@@ -282,7 +287,7 @@ class Tower:
             roofAccess: TowerRoofAccess
         ) -> None:
         """
-        district: one of 'mm', 'mp', 'pp', 'pm' (see README.md)
+        district: one of 'nw', 'sw', 'se', 'ne'
         base: TowerBase instance
         room: TowerRoom instance
         roof: TowerRoof instance
@@ -290,7 +295,7 @@ class Tower:
 
         ! Note: tower.o(rigin) is set to room.o(rigin) !
         """
-        assert district in ['mm', 'mp', 'pp', 'pm'], f'Invalid district: {district}'
+        assert district in ['nw', 'sw', 'se', 'ne'], f'Invalid district: {district}'
         self.district = district
 
         self.base = base
@@ -314,20 +319,20 @@ class Tower:
     def entranceDirections(self) -> list[str]:
         """ Each tower has a unique set of 2 entrance directions, depending on its district. """
         return {
-            'mm': ['pz', 'px'],
-            'mp': ['mz', 'px'],
-            'pp': ['mz', 'mx'],
-            'pm': ['pz', 'mx']
+            'nw': ['south', 'east'],
+            'sw': ['north', 'east'],
+            'se': ['north', 'west'],
+            'ne': ['south', 'west']
         }[self.district]
 
     def _addEntrances(self, editor: Editor) -> None:
         """ Add the correct entrances to the tower. """
-        for direction in ['pz', 'mz', 'px', 'mx']:
+        for direction in ['south', 'north', 'east', 'west']:
             if direction in self.entranceDirections:
                 entrancePos: ivec3 = self._findEntrance(direction)
-                setattr(self, f'entrance{direction.upper()}', entrancePos)
+                setattr(self, f'entrance{direction[0].upper()}', entrancePos)
             else:
-                setattr(self, f'entrance{direction.upper()}', None)
+                setattr(self, f'entrance{direction[0].upper()}', None)
         editor.placeBlock(self.entrancePoints, Air)
         return
 
@@ -348,16 +353,16 @@ class Tower:
         
         r = self.room.radius
 
-        if direction == 'pz':
+        if direction == 'south':
             _placeEntrance(-1, 1, r, r)
             return self.o + ivec3(0, -1, r)
-        elif direction == 'mz':
+        elif direction == 'north':
             _placeEntrance(-1, 1, -r, -r)
             return self.o + ivec3(0, -1, -r)
-        elif direction == 'px':
+        elif direction == 'east':
             _placeEntrance(r, r, -1, 1)
             return self.o + ivec3(r, -1, 0)
-        elif direction == 'mx':
+        elif direction == 'west':
             _placeEntrance(-r, -r, -1, 1)
             return self.o + ivec3(-r, -1, 0)
         else:

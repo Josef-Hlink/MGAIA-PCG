@@ -54,8 +54,8 @@ def createOverview(editor: Editor, buildRect: Rect) -> None:
 
     worldSlice: WorldSlice = editor.loadWorldSlice(buildRect)
     heightMap: np.ndarray = worldSlice.heightmaps['MOTION_BLOCKING_NO_LEAVES']
-    # flip horizontally
-    heightMap = np.flip(heightMap, axis=0)
+    # transpose to get the correct orientation
+    heightMap = heightMap.T
     w, h = heightMap.shape
 
     fig, ax = plt.subplots()
@@ -65,7 +65,7 @@ def createOverview(editor: Editor, buildRect: Rect) -> None:
     ax.set_xlabel('z')
     ax.set_ylabel('x')
 
-    for label, (x, y) in zip(['pm', 'mm', 'pp', 'mp'], [(5, 5), (5, w-5), (h-5, 5), (h-5, w-5)]):
+    for label, (x, y) in zip(['NW', 'SW', 'NE', 'SE'], [(5, 5), (5, w-5), (h-5, 5), (h-5, w-5)]):
         ax.text(x, y, label, color='red', ha='center', va='center')
 
     fig.tight_layout()

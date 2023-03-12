@@ -42,8 +42,8 @@ class Bridge:
         editor.placeBlock(self.basePoints, self.baseM)
         for i in range(4):
             self.stairM.setFacing(self.stairsDirections[i%2])
-            if i == 2:
-                # flip the stairs
+            self.stairM.setHalf('bottom')
+            if i >= 2:
                 self.stairM.setHalf('top')
             editor.placeBlock(self.stairsPoints[i], self.stairM)
         return
@@ -53,7 +53,7 @@ class Bridge:
         self.basePoints = []
         self.stairsPoints = [[], [], [], []]
         walkRange = range(self.from_.x+1, self.to_.x) if self.direction == 'x' else range(self.from_.z+1, self.to_.z)
-        y = self.from_.y + 1
+        y = self.from_.y
 
         def p(i: int, j: int, k: int) -> ivec3:
             """ helper method for switching between x and z directions """
@@ -112,9 +112,9 @@ class Bridge:
     @property
     def direction(self) -> str:
         """ The direction of the bridge, either 'x' or 'z'. """
-        if self.towers[0].district[0] == self.towers[1].district[0]:
+        if self.towers[0].district[1] == self.towers[1].district[1]:
             return 'z'
-        elif self.towers[0].district[1] == self.towers[1].district[1]:
+        elif self.towers[0].district[0] == self.towers[1].district[0]:
             return 'x'
         else:
             raise ValueError(
@@ -126,9 +126,9 @@ class Bridge:
         """ Set the two towers in correct order. """
         if self.direction == 'x':
             self.T1, self.T2 = sorted(self.towers, key=lambda t: t.o.x)
-            self.from_, self.to_ = self.T1.entrancePX, self.T2.entranceMX
+            self.from_, self.to_ = self.T1.entranceE, self.T2.entranceW
         elif self.direction == 'z':
             self.T1, self.T2 = sorted(self.towers, key=lambda t: t.o.z)
-            self.from_, self.to_ = self.T1.entrancePZ, self.T2.entranceMZ
+            self.from_, self.to_ = self.T1.entranceS, self.T2.entranceN
         else:
             raise ValueError(f'Invalid direction: {self.direction}')

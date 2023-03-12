@@ -24,7 +24,11 @@ def buildBounds(editor: Editor, buildRect: Box, y: int) -> None:
     center: ivec3 = addY(buildRect.center, y)
     geometry.placeRectOutline(editor, buildRect, center.y, Concrete('white'))
 
-    # mm, mp, pp, pm
+    # NW, SW, SE, NE
+    # negative x is west
+    # positive x is east
+    # negative z is north
+    # positive z is south
     directions = [(-1, -1), (-1, +1), (+1, +1), (+1, -1)]
     colors = ['blue', 'yellow', 'green', 'red']
 
@@ -44,12 +48,12 @@ def buildTowers(editor: Editor, center: ivec3, dry: bool = False) -> dict[str, T
 
     # create four 2D sectors (10x10) where the center of a tower will be chosen
     bounds = [
-        (-35, -35, -25, -25), # mm
-        (-35, +25, -25, +35), # mp
-        (+25, +25, +35, +35), # pp
-        (+25, -35, +35, -25)  # pm
+        (-35, -35, -25, -25), # NW
+        (-35, +25, -25, +35), # SW
+        (+25, +25, +35, +35), # SE
+        (+25, -35, +35, -25)  # NE
     ]
-    towers = {district: None for district in ['mm', 'mp', 'pp', 'pm']}
+    towers = {district: None for district in ['nw', 'sw', 'se', 'ne']}
     for (minx, minz, maxx, maxz), district in zip(bounds, towers.keys()):
         x = center.x + np.random.randint(minx, maxx)
         z = center.z + np.random.randint(minz, maxz)
@@ -74,7 +78,7 @@ def buildTowers(editor: Editor, center: ivec3, dry: bool = False) -> dict[str, T
             height = 10,
             radius = 13
         )
-        sign = -1 if district in ['mm', 'mp'] else 1
+        sign = -1 if district in ['nw', 'sw'] else 1
         towerRoofAccess = TowerRoofAccess(
             origin = towerRoof.o + sign * X * (towerRoom.radius-1),
             district = district, 
@@ -125,7 +129,7 @@ def buildCastle(editor: Editor, center: ivec3) -> Castle:
         origin = center + Y * (castleOutline.wallHeight+1),
         corners = castleOutline.corners,
         roofMaterial = TintedGlass,
-        coneColors = {'mm': 'blue', 'mp': 'yellow', 'pp': 'green', 'pm': 'red'},
+        coneColors = {'nw': 'blue', 'sw': 'yellow', 'se': 'green', 'ne': 'red'},
         height = 8,
         coneHeight = 3
     )
@@ -168,8 +172,8 @@ def buildBridges(editor: Editor, towers: dict[str, Tower]) -> list[Bridge]:
     baseStairPalette = BaseStairPalette()
     noRoof = np.random.randint(0, 4)
 
-    mm, mp, pp, pm = towers.values()
-    for i, towerSet in enumerate([(mm, mp), (mm, pm), (mp, pp), (pm, pp)]):
+    nw, sw, se, ne = towers.values()
+    for i, towerSet in enumerate([(nw, sw), (nw, ne), (sw, se), (ne, se)]):
         bridge = Bridge(
             towers = towerSet,
             baseMaterial = basePalette,

@@ -107,10 +107,10 @@ class CastleOutline:
     def corners(self) -> dict[str, ivec3]:
         """ Get the corners' coordinates. """
         return {
-            'mm': self.o + ivec3(-self.width, 0, -self.width),
-            'mp': self.o + ivec3(-self.width, 0, +self.width),
-            'pp': self.o + ivec3(+self.width, 0, +self.width),
-            'pm': self.o + ivec3(+self.width, 0, -self.width)
+            'nw': self.o + ivec3(-self.width, 0, -self.width),
+            'sw': self.o + ivec3(-self.width, 0, +self.width),
+            'se': self.o + ivec3(+self.width, 0, +self.width),
+            'ne': self.o + ivec3(+self.width, 0, -self.width)
         }
 
 
