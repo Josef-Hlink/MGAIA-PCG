@@ -69,5 +69,5 @@ def createOverview(editor: Editor, buildRect: Rect) -> None:
         ax.text(x, y, label, color='red', ha='center', va='center')
 
     fig.tight_layout()
-    fig.savefig('../tmp/overview.png', dpi=300)
+    fig.savefig('../../tmp/overview.png', dpi=300)
     plt.close(fig)

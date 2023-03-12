@@ -10,7 +10,7 @@ from gdpc import Block, Editor
 from glm import ivec3
 
 from generators import line3D
-from tower import Tower
+from .tower import Tower
 
 
 class Bridge:

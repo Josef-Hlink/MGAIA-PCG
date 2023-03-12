@@ -8,12 +8,12 @@ import numpy as np
 from gdpc.vector_tools import addY
 from glm import ivec3
 
-from helper import getEditor, getBuildArea, createOverview
-from tower import Tower
-from bigtree import BigTree
-from castle import Castle
-from bridge import Bridge
+from structs.tower import Tower
+from structs.bigtree import BigTree
+from structs.castle import Castle
+from structs.bridge import Bridge
 from builders import buildBounds, buildTowers, buildCastle, buildBigTree, buildBridges
+from helper import getEditor, getBuildArea, createOverview
 
 
 def main():

@@ -10,10 +10,10 @@ from gdpc import geometry, Editor, Box
 from glm import ivec3
 from gdpc.vector_tools import addY, Y, X
 
-from tower import TowerBase, TowerRoom, TowerRoof, Tower, TowerRoofAccess
-from bridge import Bridge
-from bigtree import BigTree
-from castle import CastleOutline, CastleRoof, Castle
+from structs.tower import TowerBase, TowerRoom, TowerRoof, Tower, TowerRoofAccess
+from structs.bridge import Bridge
+from structs.bigtree import BigTree
+from structs.castle import CastleOutline, CastleRoof, Castle
 from generators import line3D
 from materials import BasePalette, BaseStairPalette, CryingObsidian, TintedGlass, Concrete
 

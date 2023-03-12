@@ -96,7 +96,6 @@ class BigTree:
 
     def _setLeaves(self) -> None:
         """ Construct a leaves generator (point sequence). """
-        print(self.trunkHeight)
 
         self.leavesGenerator = []
         for x in range(-8, 9):
