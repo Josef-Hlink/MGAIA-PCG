@@ -9,9 +9,8 @@ import sys
 import numpy as np
 import matplotlib.pyplot as plt
 
-from gdpc import __url__, geometry
-from gdpc import Block, Editor, Box, Rect, WorldSlice
-from glm import ivec3
+from gdpc import __url__
+from gdpc import Editor, Box, Rect, WorldSlice
 from gdpc.exceptions import InterfaceConnectionError, BuildAreaNotSetError
 
 
@@ -48,17 +47,6 @@ def getBuildArea(editor: Editor) -> Box:
         sys.exit(1)
 
     return buildArea
-
-
-def clearBuildArea(editor: Editor, center: ivec3, height: int = 10) -> None:
-    """ Clear the build area. """
-    
-    geometry.placeCuboid(
-        editor,
-        center + ivec3(-50, 0, -50),
-        center + ivec3(+50, height, +50),
-        Block("air")
-    )
 
 
 def createOverview(editor: Editor, buildRect: Rect) -> None:
