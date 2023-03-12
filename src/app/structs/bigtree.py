@@ -36,14 +36,6 @@ class BigTree:
     def place(self, editor: Editor) -> None:
         editor.placeBlock(self.leavesGenerator, SpruceLeaves)
         editor.placeBlock(self.trunkGenerator, SpruceLog)
-        editor.placeBlock(
-            cuboid3D(
-                corner1 = self.o + ivec3(-1, -1, -1),
-                corner2 = self.o + ivec3(+1, -1, +1)
-            ),
-            Diamond
-        )
-        editor.placeBlock(self.o, Beacon)
 
 
     def _setTrunk(self) -> None:

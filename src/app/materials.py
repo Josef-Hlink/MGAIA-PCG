@@ -4,7 +4,7 @@
 All materials will be defined here, so palettes as well as single blocks.
 """
 
-from typing import Sequence
+from typing import Sequence, Optional
 from gdpc import Block
 
 
@@ -86,3 +86,6 @@ SpruceLeaves = Block('spruce_leaves')
 
 DeepSlateBrickSlab = Block('deepslate_brick_slab', {'type': 'top'})
 SpruceLog = Block('spruce_log', {'axis': 'y'})
+
+Water = Block('water')
+Lava = Block('lava')

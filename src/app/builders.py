@@ -13,7 +13,7 @@ from gdpc.vector_tools import addY, Y, X
 from structs.tower import TowerBase, TowerRoom, TowerRoof, Tower, TowerRoofAccess
 from structs.bridge import Bridge
 from structs.bigtree import BigTree
-from structs.castle import CastleOutline, CastleRoof, Castle
+from structs.castle import CastleOutline, CastleBasement, CastleRoof, Castle
 from generators import line3D
 from materials import BasePalette, BaseStairPalette, CryingObsidian, TintedGlass, Concrete
 
@@ -33,7 +33,7 @@ def buildBounds(editor: Editor, buildRect: Box, y: int) -> None:
         editor.placeBlock(line3D(xz, xz + ivec3(0, 10, 0)), Concrete(color))
 
 
-def buildTowers(editor: Editor, center: ivec3) -> dict[str, Tower]:
+def buildTowers(editor: Editor, center: ivec3, dry: bool = False) -> dict[str, Tower]:
     """
     Place the towers of the build area.
     Returns a dictionary with the towers.
@@ -91,7 +91,8 @@ def buildTowers(editor: Editor, center: ivec3) -> dict[str, Tower]:
             roofAccess = towerRoofAccess
         )
 
-        tower.place(editor)
+        if not dry:
+            tower.place(editor)
         towers[district] = tower
     
     return towers
@@ -109,8 +110,16 @@ def buildCastle(editor: Editor, center: ivec3) -> Castle:
         origin = center,
         baseMaterial = basePalette,
         wallHeight = 25,
+        basementHeight = 10,
         width = 10,
         pillarRadius = 3
+    )
+    castleBasement = CastleBasement(
+        origin = castleOutline.o - Y * castleOutline.basementHeight,
+        baseMaterial = basePalette,
+        chest = CryingObsidian,
+        beaconColor = 'black',
+        width = castleOutline.width,
     )
     castleRoof = CastleRoof(
         origin = center + Y * (castleOutline.wallHeight+1),
@@ -122,6 +131,7 @@ def buildCastle(editor: Editor, center: ivec3) -> Castle:
     )
     castle = Castle(
         outline = castleOutline,
+        basement = castleBasement,
         roof = castleRoof
     )
 
