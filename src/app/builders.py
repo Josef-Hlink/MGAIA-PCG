@@ -12,10 +12,9 @@ from gdpc.vector_tools import addY, Y, X
 
 from structs.tower import TowerBase, TowerRoom, TowerRoof, Tower, TowerRoofAccess
 from structs.bridge import Bridge
-from structs.bigtree import BigTree
-from structs.castle import CastleOutline, CastleBasement, CastleRoof, Castle
+from structs.castle import CastleOutline, CastleBasement, CastleRoof, CastleTree, Castle
 from generators import line3D
-from materials import BasePalette, BaseStairPalette, CryingObsidian, TintedGlass, Concrete
+from materials import BasePalette, BaseStairPalette, Concrete, CryingObsidian, TintedGlass
 
 
 def buildBounds(editor: Editor, buildRect: Box, y: int) -> None:
@@ -113,10 +112,9 @@ def buildCastle(editor: Editor, center: ivec3) -> Castle:
     castleOutline = CastleOutline(
         origin = center,
         baseMaterial = basePalette,
-        wallHeight = 25,
+        wallHeight = 30,
         basementHeight = 10,
-        width = 10,
-        pillarRadius = 3
+        width = 10
     )
     castleBasement = CastleBasement(
         origin = castleOutline.o - Y * castleOutline.basementHeight,
@@ -129,35 +127,22 @@ def buildCastle(editor: Editor, center: ivec3) -> Castle:
         origin = center + Y * (castleOutline.wallHeight+1),
         corners = castleOutline.corners,
         roofMaterial = TintedGlass,
-        coneColors = {'nw': 'blue', 'sw': 'yellow', 'se': 'green', 'ne': 'red'},
-        height = 8,
-        coneHeight = 3
+        height = 8
+    )
+    castleTree = CastleTree(
+        origin = center + Y,
+        maxTrunkHeight = 20
     )
     castle = Castle(
         outline = castleOutline,
         basement = castleBasement,
-        roof = castleRoof
+        roof = castleRoof,
+        tree = castleTree
     )
 
     castle.place(editor)
 
     return castle
-
-
-def buildBigTree(editor: Editor, center: ivec3) -> BigTree:
-    """
-    Place the big tree in the center of the build area.
-    Returns the tree.
-    """
-
-    bigTree = BigTree(
-        origin = center + Y,
-        maxTrunkHeight = 20
-    )
-
-    bigTree.place(editor)
-
-    return bigTree
 
 
 def buildBridges(editor: Editor, towers: dict[str, Tower]) -> list[Bridge]:

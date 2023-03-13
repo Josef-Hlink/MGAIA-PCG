@@ -4,12 +4,14 @@
 All tower-related classes are defined here.
 """
 
+from typing import Generator, Sequence
+
 from gdpc import Block, Editor
 from gdpc.vector_tools import Y
 from glm import ivec3
 
 from generators import fittingCylinder, cuboid3D, line3D, pyramid, cone
-from materials import Air, Netherite, Beacon
+from materials import Air, Netherite, Beacon, GlowStone
 
 
 class TowerBase:
@@ -20,7 +22,7 @@ class TowerBase:
 
     def __init__(self,
             origin: ivec3,
-            material: Block | list[Block],
+            material: Block | Sequence[Block],
             height: int, radius: int
         ) -> None:
         """
@@ -32,23 +34,26 @@ class TowerBase:
         self.m = material
         self.height = height
         self.radius = radius
-        self._setGenerators()
-        return
-
-    def _setGenerators(self) -> None:
-        """ Determine the locations of all blocks of the tower base. """
-        r, h = self.radius, self.height
-        self.baseGenerator = fittingCylinder(
-            self.o + ivec3(-r, 0, -r),
-            self.o + ivec3(r, h, r),
-            tube = True
-        )
         return
     
     def place(self, editor: Editor) -> None:
         """ Place the tower base in Minecraft. """
-        editor.placeBlock(self.baseGenerator, self.m)
+        editor.placeBlock(self.wallsG, self.m)
         return
+    
+    @property
+    def wallsG(self) -> Generator[ivec3, None, None]:
+        """ Generator for positions of the walls. """
+        r, h = self.radius, self.height
+        return fittingCylinder(
+            self.o + ivec3(-r, 0, -r),
+            self.o + ivec3(r, h, r),
+            tube = True
+        )
+    @property
+    def wallsPC(self) -> Sequence[ivec3]:
+        """ Positions of the walls. """
+        return list(self.wallsG)
 
 
 class TowerRoom:
@@ -59,7 +64,7 @@ class TowerRoom:
 
     def __init__(self,
             origin: ivec3,
-            material: Block | list[Block],
+            material: Block | Sequence[Block],
             height: int, radius: int
         ) -> None:
         """
@@ -71,23 +76,26 @@ class TowerRoom:
         self.m = material
         self.height = height
         self.radius = radius
-        self._setGenerators()
         return
 
-    def _setGenerators(self) -> None:
-        """ Determine the locations of all blocks of the tower room. """
+    def place(self, editor: Editor) -> None:
+        """ Place the tower room in Minecraft. """
+        editor.placeBlock(self.wallsG, self.m)
+        return
+
+    @property
+    def wallsG(self) -> Generator[ivec3, None, None]:
+        """ Generator for positions of the walls. """
         r, h = self.radius, self.height
-        self.baseGenerator = fittingCylinder(
+        return fittingCylinder(
             self.o + ivec3(-r, 0, -r),
             self.o + ivec3(r, h, r),
             hollow = True
         )
-        return
-    
-    def place(self, editor: Editor) -> None:
-        """ Place the tower room in Minecraft. """
-        editor.placeBlock(self.baseGenerator, self.m)
-        return
+    @property
+    def wallsPC(self) -> Sequence[ivec3]:
+        """ Positions of the walls. """
+        return list(self.wallsG)
 
 
 class TowerRoof:
@@ -102,8 +110,8 @@ class TowerRoof:
 
     def __init__(self,
             origin: ivec3,
-            baseMaterial: Block | list[Block],
-            coneMaterial: Block | list[Block],
+            baseMaterial: Block | Sequence[Block],
+            coneMaterial: Block | Sequence[Block],
             beaconColor: str, height: int, radius: int
         ) -> None:
         """
@@ -120,53 +128,71 @@ class TowerRoof:
         self.beaconColor = beaconColor
         self.height = height
         self.radius = radius
-        self._setGenerators()
         return
 
-    def _setGenerators(self) -> None:
-        """ Determine the locations of (almost) all blocks of the tower roof. """
+    def place(self, editor: Editor) -> None:
+        """ Place all blocks of the tower roof in Minecraft. """
+        editor.placeBlock(self.floorG, self.baseM)
+        editor.placeBlock(self.guardsG, self.baseM)
+        editor.placeBlock(self.beaconPyramidG, Netherite)
+        editor.placeBlock(self.o + Y * 4, Beacon)
+        editor.placeBlock(self.coneG, self.coneM)
+        editor.placeBlock(self.o + Y * self.height, Air)
+        stainedGlass = Block(f'{self.beaconColor}_stained_glass')
+        editor.placeBlock(self.o + Y * (self.height-1), stainedGlass)
+        return
+
+    @property
+    def floorG(self) -> Generator[ivec3, None, None]:
+        """ Generator for positions of the floor. """
         r = self.radius
-        self.baseGenerator = fittingCylinder(
-            corner1 = self.o + ivec3(-r, 0, -r),
-            corner2 = self.o + ivec3(r, 0, r)
+        return fittingCylinder(
+            self.o + ivec3(-r, 0, -r),
+            self.o + ivec3(r, 0, r)
         )
-        self.guardsGenerator = fittingCylinder(
-            corner1 = self.o + ivec3(-r, -1, -r),
-            corner2 = self.o + ivec3(r, 1, r),
+    @property
+    def floorPC(self) -> Sequence[ivec3]:
+        """ Positions of the floor. """
+        return list(self.floorG)
+    
+    @property
+    def guardsG(self) -> Generator[ivec3, None, None]:
+        """ Generator for positions of the guards. """
+        r = self.radius
+        return fittingCylinder(
+            self.o + ivec3(-r, -1, -r),
+            self.o + ivec3(r, 1, r),
             tube = True
         )
-        self.pyramidGenerator = pyramid(
+    @property
+    def guardsPC(self) -> Sequence[ivec3]:
+        """ Positions of the guards. """
+        return list(self.guardsG)
+    
+    @property
+    def beaconPyramidG(self) -> Generator[ivec3, None, None]:
+        """ Generator for positions of the beacon pyramid. """
+        return pyramid(
             origin = self.o + Y,
             height = 4
         )
-        self.coneGenerator = cone(
+    @property
+    def beaconPyramidPC(self) -> Sequence[ivec3]:
+        """ Positions of the beacon pyramid. """
+        return list(self.beaconPyramidG)
+    
+    @property
+    def coneG(self) -> Generator[ivec3, None, None]:
+        """ Generator for positions of the cone. """
+        return cone(
             origin = self.o + Y,
             height = self.height,
             hollow = True
         )
-        return
-    
-    def place(self, editor) -> None:
-        """ Place all blocks of the tower roof in Minecraft. """
-        # base and guards
-        editor.placeBlock(self.baseGenerator, self.baseM)
-        editor.placeBlock(self.guardsGenerator, self.baseM)
-        
-        # pyramid and beacon
-        editor.placeBlock(self.pyramidGenerator, Netherite)
-        editor.placeBlock(
-            self.o + Y * 4,
-            Beacon
-        )
-
-        # top cone and beacon glass
-        editor.placeBlock(self.coneGenerator, self.coneM)
-        editor.placeBlock(self.o + Y * self.height, Air)
-        editor.placeBlock(
-            self.o + Y * (self.height-1),
-            Block(f'{self.beaconColor}_stained_glass')
-        )
-        return
+    @property
+    def conePC(self) -> Sequence[ivec3]:
+        """ Positions of the cone. """
+        return list(self.coneG)
 
 
 class TowerRoofAccess:
@@ -200,67 +226,21 @@ class TowerRoofAccess:
         self.stairM = stairMaterial
         self.gateM = gateMaterial
         self.roomH = roomHeight
-        self._setGenerators()
         return
 
     def place(self, editor: Editor) -> None:
-        """ Place all blocks of the tower roof access point in Minecraft. """
-        
-        editor.placeBlock(self.uShapeGenerator, self.baseM)
-        
-        editor.placeBlock(
-            self.ladderGenerator,
-            Block('ladder', {'facing': self.notFacing})
-        )
-
-        # stairs sets 1 and 2 are placed in the opposite direction of self.facing
+        """ Place all blocks of the tower roof access construction in Minecraft. """
+        editor.placeBlock(self.platformG, self.baseM)
+        ladder = Block('ladder', {'facing': self.notFacing})
+        editor.placeBlock(self.ladderG, ladder)
         self.stairM.setFacing(self.notFacing)
-        for stairGenerator in [self.stairGenerator1, self.stairGenerator2]:
-            editor.placeBlock(stairGenerator, self.stairM)
-        # stairs set 3 is placed in the correct direction of self.facing
+        for stairG in self.stairsG[:2]:
+            editor.placeBlock(stairG, self.stairM)
         self.stairM.setFacing(self.facing)
-        editor.placeBlock(self.stairGenerator3, self.stairM)
-        
-        editor.placeBlock(self.gateGenerator, self.gateM)
-        for gapGenerator in [self.gapGenerator1, self.gapGenerator2]:
-            editor.placeBlock(gapGenerator, Air)
-        
-        return
-
-    def _setGenerators(self) -> None:
-        """ Determine the locations of all blocks of the roof access. """
-        self.uShapeGenerator = cuboid3D(
-            corner1 = self.o + ivec3(self.xSign * +0, -1, -4),
-            corner2 = self.o + ivec3(self.xSign * +1, -1, +4)
-        )
-        self.ladderGenerator = cuboid3D(
-            corner1 = self.o + ivec3(0, -self.roomH+1, -1),
-            corner2 = self.o + ivec3(0,            -1, +1)
-        )
-        self.stairGenerator1 = line3D(
-            begin = self.o + ivec3(self.xSign* +1, -1, -1),
-            end   = self.o + ivec3(self.xSign* +1, -1, +1)
-        )
-        self.stairGenerator2 = line3D(
-            begin = self.o + ivec3(self.xSign* +2, 0, -1),
-            end   = self.o + ivec3(self.xSign* +2, 0, +1)
-        )
-        self.stairGenerator3 = line3D(
-            begin = self.o + ivec3(self.xSign* -1, 0, -1),
-            end   = self.o + ivec3(self.xSign* -1, 0, +1)
-        )
-        self.gateGenerator = cuboid3D(
-            corner1 = self.o + ivec3(self.xSign* +0, +1, -2),
-            corner2 = self.o + ivec3(self.xSign* +2, +3, +2)
-        )
-        self.gapGenerator1 = cuboid3D(
-            corner1 = self.o + ivec3(self.xSign* +0, +1, -1),
-            corner2 = self.o + ivec3(self.xSign* +2, +2, +1)
-        )
-        self.gapGenerator2 = cuboid3D(
-            corner1 = self.o + ivec3(self.xSign* +0, 0, -1),
-            corner2 = self.o + ivec3(self.xSign* +1, 0, +1)
-        )
+        editor.placeBlock(self.stairsG[2], self.stairM)
+        editor.placeBlock(self.gateG, self.gateM)
+        for gapG in self.gapsG:
+            editor.placeBlock(gapG, Air)
         return
 
     @property
@@ -274,6 +254,75 @@ class TowerRoofAccess:
     @property
     def xSign(self) -> int:
         return {'east': -1, 'west': +1}[self.facing]
+
+    @property
+    def platformG(self) -> Generator[ivec3, None, None]:
+        """ Generator for positions of the platform. """
+        return cuboid3D(
+            self.o + ivec3(self.xSign * +0, -1, -4),
+            self.o + ivec3(self.xSign * +1, -1, +4)
+        )
+    @property
+    def platformPC(self) -> Sequence[ivec3]:
+        """ Positions of the platform. """
+        return list(self.platformG)
+    
+    @property
+    def ladderG(self) -> Generator[ivec3, None, None]:
+        """ Generator for positions of the ladder. """
+        return cuboid3D(
+            self.o + ivec3(0, -self.roomH+1, -1),
+            self.o + ivec3(0,            -1, +1)
+        )
+    @property
+    def ladderPC(self) -> Sequence[ivec3]:
+        """ Positions of the ladder. """
+        return list(self.ladderG)
+    
+    @property
+    def stairsG(self) -> Sequence[Generator[ivec3, None, None]]:
+        """ Generator for positions of the three sets of stairs. """
+        return [cuboid3D(
+            self.o + ivec3(self.xSign * +1, -1, -1),
+            self.o + ivec3(self.xSign * +1, -1, +1)
+        ), cuboid3D(
+            self.o + ivec3(self.xSign * +2, 0, -1),
+            self.o + ivec3(self.xSign * +2, 0, +1)
+        ), cuboid3D(
+            self.o + ivec3(self.xSign * -1, 0, -1),
+            self.o + ivec3(self.xSign * -1, 0, +1)
+        )]
+    @property
+    def stairsPC(self) -> Sequence[Sequence[ivec3]]:
+        """ Positions of the three sets of stairs. """
+        return [list(g) for g in self.stairsG]
+    
+    @property
+    def gateG(self) -> Generator[ivec3, None, None]:
+        """ Generator for positions of the gate. """
+        return cuboid3D(
+            self.o + ivec3(self.xSign * 0, +1, -2),
+            self.o + ivec3(self.xSign * 2, +3, +2)
+        )
+    @property
+    def gatePC(self) -> Sequence[ivec3]:
+        """ Positions of the gate. """
+        return list(self.gateG)
+    
+    @property
+    def gapsG(self) -> Sequence[Generator[ivec3, None, None]]:
+        """ Generator for positions of the two gaps of air. """
+        return [cuboid3D(
+            self.o + ivec3(self.xSign * +0, +1, -1),
+            self.o + ivec3(self.xSign * +2, +2, +1)
+        ), cuboid3D(
+            self.o + ivec3(self.xSign * +0, 0, -1),
+            self.o + ivec3(self.xSign * +1, 0, +1)
+        )]
+    @property
+    def gapsPC(self) -> Sequence[Sequence[ivec3]]:
+        """ Positions of the two gaps of air. """
+        return [list(g) for g in self.gapsG]
 
 
 class Tower:
@@ -303,7 +352,6 @@ class Tower:
         self.roof = roof
         self.roofAccess = roofAccess
         self.o = self.room.o
-        self.entrancePoints = []
         return
 
     def place(self, editor: Editor) -> None:
@@ -311,9 +359,18 @@ class Tower:
         self.base.place(editor)
         self.room.place(editor)
         self.roof.place(editor)
-        self._addEntrances(editor)
         self.roofAccess.place(editor)
+        for entranceG in self.entrancesG:
+            editor.placeBlock(entranceG, Air)
         return
+
+    @property
+    def entranceOrigins(self) -> dict[str, ivec3]:
+        """ Each tower has a unique set of 2 entrances, depending on its district. """
+        return {
+            'x': self.o + ivec3(self.xSign * self.room.radius, 0, 0),
+            'z':  self.o + ivec3(0, 0, self.zSign * self.room.radius)
+        }
 
     @property
     def entranceDirections(self) -> list[str]:
@@ -324,46 +381,28 @@ class Tower:
             'se': ['north', 'west'],
             'ne': ['south', 'west']
         }[self.district]
+    
+    @property
+    def zSign(self) -> int:
+        return {'north': -1, 'south': +1}[self.entranceDirections[0]]
 
-    def _addEntrances(self, editor: Editor) -> None:
-        """ Add the correct entrances to the tower. """
-        for direction in ['south', 'north', 'east', 'west']:
-            if direction in self.entranceDirections:
-                entrancePos: ivec3 = self._findEntrance(direction)
-                setattr(self, f'entrance{direction[0].upper()}', entrancePos)
-            else:
-                setattr(self, f'entrance{direction[0].upper()}', None)
-        editor.placeBlock(self.entrancePoints, Air)
-        return
+    @property
+    def xSign(self) -> int:
+        return {'west': -1, 'east': +1}[self.entranceDirections[1]]
 
-    def _findEntrance(self, direction: str) -> ivec3:
-        """
-        Adds an entrance to the tower by carving out
-        a 3x4x1 area in the wall of the main room.
-        
-        It returns the origin position of the entrance.
-        """
-
-        def _placeEntrance(x1: int, x2: int, z1: int, z2: int) -> None:
-            """ helper method """
-            self.entrancePoints.extend(cuboid3D(
-                corner1 = self.o + ivec3(x1, 1, z1),
-                corner2 = self.o + ivec3(x2, 4, z2)
-            ))
-        
+    @property
+    def entrancesG(self) -> Sequence[Generator[ivec3, None, None]]:
+        """ Generator for positions of the two entrances. """
+        x, z = self.xSign, self.zSign
         r = self.room.radius
-
-        if direction == 'south':
-            _placeEntrance(-1, 1, r, r)
-            return self.o + ivec3(0, -1, r)
-        elif direction == 'north':
-            _placeEntrance(-1, 1, -r, -r)
-            return self.o + ivec3(0, -1, -r)
-        elif direction == 'east':
-            _placeEntrance(r, r, -1, 1)
-            return self.o + ivec3(r, -1, 0)
-        elif direction == 'west':
-            _placeEntrance(-r, -r, -1, 1)
-            return self.o + ivec3(-r, -1, 0)
-        else:
-            raise ValueError(f'Invalid direction: {direction}')
+        return [cuboid3D(
+            self.o + ivec3(x*r, 1, -1),
+            self.o + ivec3(x*r, 3, +1)
+        ), cuboid3D(
+            self.o + ivec3(-1, 1, z*r),
+            self.o + ivec3(+1, 3, z*r)
+        )]
+    @property
+    def entrancesPC(self) -> Sequence[Sequence[ivec3]]:
+        """ Positions of the two entrances. """
+        return [list(g) for g in self.entrancesG]

@@ -9,10 +9,9 @@ from gdpc.vector_tools import addY
 from glm import ivec3
 
 from structs.tower import Tower
-from structs.bigtree import BigTree
 from structs.castle import Castle
 from structs.bridge import Bridge
-from builders import buildBounds, buildTowers, buildCastle, buildBigTree, buildBridges
+from builders import buildBounds, buildTowers, buildCastle, buildBridges
 from helper import getEditor, getBuildArea, createOverview
 
 
@@ -52,11 +51,6 @@ def main():
     start = perf_counter()
     castle: Castle = buildCastle(editor, relativeCenter)
     print(f'Building castle took {perf_counter() - start:.2f} seconds.')
-    
-    # place big tree inside castle
-    start = perf_counter()
-    bigTree: BigTree = buildBigTree(editor, relativeCenter)
-    print(f'Building big tree took {perf_counter() - start:.2f} seconds.')
 
     # build bridges between towers' entrances
     start = perf_counter()

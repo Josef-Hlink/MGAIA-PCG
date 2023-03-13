@@ -83,6 +83,8 @@ GlowStone = Block('glowstone')
 CryingObsidian = Block('crying_obsidian')
 TintedGlass = Block('tinted_glass')
 SpruceLeaves = Block('spruce_leaves')
+EndStoneBricks = Block('end_stone_bricks')
+Magma = Block('magma_block')
 
 DeepSlateBrickSlab = Block('deepslate_brick_slab', {'type': 'top'})
 SpruceLog = Block('spruce_log', {'axis': 'y'})

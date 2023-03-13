@@ -56,16 +56,16 @@ def createOverview(editor: Editor, buildRect: Rect) -> None:
     heightMap: np.ndarray = worldSlice.heightmaps['MOTION_BLOCKING_NO_LEAVES']
     # transpose to get the correct orientation
     heightMap = heightMap.T
-    w, h = heightMap.shape
+    shp = heightMap.shape[0]
 
     fig, ax = plt.subplots()
     ax.imshow(heightMap, cmap='terrain')
-    ax.set_xticks(np.arange(0, h, 10), np.arange(-h//2+1, h//2+1, 10))
-    ax.set_yticks(np.arange(0, w, 10), np.arange(w//2, -w//2, -10))
-    ax.set_xlabel('z')
-    ax.set_ylabel('x')
+    ax.set_xticks(np.arange(0, shp, 10), np.arange(shp//2, -shp//2, -10))
+    ax.set_yticks(np.arange(0, shp, 10), np.arange(-shp//2+1, shp//2+1, 10))
+    ax.set_xlabel('X')
+    ax.set_ylabel('Z')
 
-    for label, (x, y) in zip(['NW', 'SW', 'NE', 'SE'], [(5, 5), (5, w-5), (h-5, 5), (h-5, w-5)]):
+    for label, (x, y) in zip(['NW', 'SW', 'NE', 'SE'], [(5, 5), (5, shp-5), (shp-5, 5), (shp-5, shp-5)]):
         ax.text(x, y, label, color='red', ha='center', va='center')
 
     fig.tight_layout()
