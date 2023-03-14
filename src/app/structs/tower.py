@@ -6,6 +6,8 @@ All tower-related classes are defined here.
 
 from typing import Generator, Sequence
 
+import numpy as np
+
 from gdpc import Block, Editor
 from gdpc.vector_tools import Y
 from glm import ivec3
@@ -21,16 +23,18 @@ class TowerBase:
     """
 
     def __init__(self,
-            origin: ivec3,
+            origin: ivec3, district: str,
             material: Block | Sequence[Block],
             height: int, radius: int
         ) -> None:
         """
         origin: reference point (used as center)
+        district: the district the tower is in
         height: from origin (not ground) to top of base
         radius: radius of base
         """
         self.o = origin
+        self.district = district
         self.m = material
         self.height = height
         self.radius = radius
@@ -323,6 +327,129 @@ class TowerRoofAccess:
     def gapsPC(self) -> Sequence[Sequence[ivec3]]:
         """ Positions of the two gaps of air. """
         return [list(g) for g in self.gapsG]
+
+
+class TowerStairway:
+    """
+    A stairway spiraling up the tower.
+    """
+
+    def __init__(self, towerBase: TowerBase, material: Block | Sequence[Block]) -> None:
+        """
+        towerBase: TowerBase instance
+        material: will be used for the stair blocks (base blocks is taken from towerBase)
+        """
+        self.district = towerBase.district
+        self.baseH = towerBase.height
+        self.baseM = towerBase.m
+        self.stairM = material
+        self.towerO = towerBase.o
+        self.baseR = towerBase.radius
+        return
+
+    def place(self, editor: Editor) -> None:
+        """ Place all blocks of the tower spiral stair"""
+        editor.placeBlock(self.o, GlowStone)
+        editor.placeBlock(self.baselineG, self.baseM)
+        editor.placeBlock(self.cutoutG, Air)
+        facing = {'w': 'north', 'e': 'south'}[self.district[1]]
+        self.stairM.setFacing(facing)
+        editor.placeBlock(self.initialStairsG, self.stairM)
+        editor.placeBlock(self.firstPlateauG, self.baseM)
+        for n in range(1, 5):
+            facing = self._next(facing)
+            self.stairM.setFacing(facing)
+            editor.placeBlock(self.setOfStairsG(n), self.stairM)
+            editor.placeBlock(self.plateauG(n), self.baseM)
+        return
+
+    @property
+    def baselineG(self) -> Generator[ivec3, None, None]:
+        """ Generator for positions of the baseline. """
+        for i in [0, 1, 2]:
+            yield from cuboid3D(
+                self.o + ivec3(self.sign * +2, -(i+1), self.sign * +i),
+                self.o + ivec3(self.sign * -2, -(i+1), self.sign * +(i+1))
+            )
+
+    @property
+    def cutoutG(self) -> Generator[ivec3, None, None]:
+        """ Generator for positions of the cutout. """
+        return cuboid3D(
+            self.o + ivec3(self.sign * -1, -1, self.sign * +1),
+            self.o + ivec3(self.sign * +1, +3, self.sign * +2)
+        )
+    
+    @property
+    def initialStairsG(self) -> Generator[ivec3, None, None]:
+        """ Generator for positions of the initial stair. """
+        for i in [0, 1, 2]:
+            yield from line3D(
+                self.o + ivec3(self.sign * -1, -i, self.sign * +i),
+                self.o + ivec3(self.sign * +1, -i, self.sign * +i)
+            )
+    
+    @property
+    def firstPlateauG(self) -> Generator[ivec3, None, None]:
+        """ Generator for positions of the first plateau. """
+        for i in range(6):
+            yield from line3D(
+                self.o + ivec3(self.sign * (-2-i), -3, self.sign * (3+i)),
+                self.o + ivec3(self.sign * (+2-i), -3, self.sign * (3+i))
+            )
+        for i in range(4):
+            yield from line3D(
+                self.o + ivec3(self.sign * -9,     -3, self.sign * (9+i)),
+                self.o + ivec3(self.sign * (-4-i), -3, self.sign * (9+i))
+            )
+
+    def setOfStairsG(self, n: int) -> Generator[ivec3, None, None]:
+        """ Generator for the n-th set of stairs. """
+        
+        s = self.sign
+        x1, x2, z1, z2 = [(s, 0, 0, -s), (0, s, s, 0), (-s, 0, 0, s), (0, -s, -s, 0)][n % 4]
+        o = ivec3(
+            self.towerO.x + x1 * (self.baseR + 2) + x2 * 3,
+            self.o.y + 2-(5*n)+1,
+            self.towerO.z + z1 * (self.baseR + 2) + z2 * 3
+        )
+
+        for i in range(1, 6):
+            yield from [
+                line3D(o + ivec3(s *-1, -i, s*+i), o + ivec3(s *+1, -i, s*+i)),
+                line3D(o + ivec3(s *-i, -i, s*+1), o + ivec3(s *-i, -i, s*-1)),
+                line3D(o + ivec3(s *-1, -i, s*-i), o + ivec3(s *+1, -i, s*-i)),
+                line3D(o + ivec3(s *+i, -i, s*+1), o + ivec3(s *+i, -i, s*-1))
+            ][n % 4]
+
+    def plateauG(self, n: int) -> Generator[ivec3, None, None]:
+        """ Generator for the plateau connecting the n-th and the (n+1)-th set of stairs. """
+        s = self.sign
+        xs, zs = [(s, s), (-s, s), (-s, -s), (s, -s)][n % 4]
+        y = self.o.y + -3-(5*n)
+        tx, tz = self.towerO.x, self.towerO.z
+        r = self.baseR
+        return filter(lambda p:
+            np.linalg.norm(p - ivec3(tx, y, tz)) > r-1 and
+            np.linalg.norm(p - ivec3(tx, y, tz)) < r+4, cuboid3D(
+                ivec3(tx + xs * 3, y, tz + zs * 3),
+                ivec3(tx + xs * (r+3), y, tz + zs * (r+3))
+            )
+        )
+
+    @property
+    def sign(self) -> int:
+        """ The sign of the stairway. """
+        return {'w': +1, 'e': -1}[self.district[1]]
+
+    @property
+    def o(self) -> ivec3:
+        """ The reference point of the stairway. """
+        return self.towerO + ivec3(self.sign * (self.baseR + 2), self.baseH, self.sign * 1)
+
+    def _next(self, facing: str) -> str:
+        """ The next facing. """
+        return {'north': 'east', 'east': 'south', 'south': 'west', 'west': 'north'}[facing]
 
 
 class Tower:

@@ -60,7 +60,7 @@ def createOverview(editor: Editor, buildRect: Rect) -> None:
 
     fig, ax = plt.subplots()
     ax.imshow(heightMap, cmap='terrain')
-    ax.set_xticks(np.arange(0, shp, 10), np.arange(shp//2, -shp//2, -10))
+    ax.set_xticks(np.arange(0, shp, 10), np.arange(-shp//2+1, shp//2+1, 10))
     ax.set_yticks(np.arange(0, shp, 10), np.arange(-shp//2+1, shp//2+1, 10))
     ax.set_xlabel('X')
     ax.set_ylabel('Z')

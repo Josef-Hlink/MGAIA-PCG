@@ -73,6 +73,20 @@ class Concrete:
     def __iter__(self):
         return iter([self.block])
 
+class PurpurStairs:
+    """ A simple purpur stairs block. """
+    def __init__(self):
+        self.block = Block('purpur_stairs', {'facing': 'north', 'half': 'bottom'})
+
+    def setFacing(self, facing: str):
+        self.block.states['facing'] = facing
+
+    def setHalf(self, half: str):
+        self.block.states['half'] = half
+
+    def __iter__(self):
+        return iter([self.block])
+
 
 Air = Block('air')
 Netherite = Block('netherite_block')

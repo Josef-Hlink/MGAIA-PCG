@@ -10,7 +10,7 @@ from gdpc import geometry, Editor, Box
 from glm import ivec3
 from gdpc.vector_tools import addY, Y, X
 
-from structs.tower import TowerBase, TowerRoom, TowerRoof, Tower, TowerRoofAccess
+from structs.tower import TowerBase, TowerRoom, TowerRoof, Tower, TowerRoofAccess, TowerStairway
 from structs.bridge import Bridge
 from structs.castle import CastleOutline, CastleBasement, CastleRoof, CastleTree, Castle
 from generators import line3D
@@ -24,8 +24,8 @@ def buildBounds(editor: Editor, buildRect: Box, y: int) -> None:
     geometry.placeRectOutline(editor, buildRect, center.y, Concrete('white'))
 
     # NW, SW, SE, NE
-    # negative x is west
-    # positive x is east
+    # negative x is east
+    # positive x is west
     # negative z is north
     # positive z is south
     directions = [(-1, -1), (-1, +1), (+1, +1), (+1, -1)]
@@ -59,6 +59,7 @@ def buildTowers(editor: Editor, center: ivec3, dry: bool = False) -> dict[str, T
 
         towerBase = TowerBase(
             origin = ivec3(x, center.y, z),
+            district = district,
             material = basePalette,
             height = 20,
             radius = 10
@@ -97,7 +98,7 @@ def buildTowers(editor: Editor, center: ivec3, dry: bool = False) -> dict[str, T
         if not dry:
             tower.place(editor)
         towers[district] = tower
-    
+
     return towers
 
 
@@ -169,3 +170,19 @@ def buildBridges(editor: Editor, towers: dict[str, Tower]) -> list[Bridge]:
         bridges.append(bridge)
     
     return bridges
+
+
+def buildStairway(editor: Editor, towers: dict[str, Tower]) -> TowerStairway:
+    """
+    Place a stairway around one randomly chosen tower.
+    Returns the stairway.
+    """
+
+    tower = np.random.choice(list(towers.values()))
+    stairway = TowerStairway(
+        towerBase = tower.base,
+        material = BaseStairPalette()
+    )
+    stairway.place(editor)
+
+    return stairway

@@ -8,10 +8,10 @@ import numpy as np
 from gdpc.vector_tools import addY
 from glm import ivec3
 
-from structs.tower import Tower
+from structs.tower import Tower, TowerStairway
 from structs.castle import Castle
 from structs.bridge import Bridge
-from builders import buildBounds, buildTowers, buildCastle, buildBridges
+from builders import buildBounds, buildTowers, buildCastle, buildBridges, buildStairway
 from helper import getEditor, getBuildArea, createOverview
 
 
@@ -56,6 +56,11 @@ def main():
     start = perf_counter()
     bridges: list[Bridge] = buildBridges(editor, towers)
     print(f'Building bridges took {perf_counter() - start:.2f} seconds.')
+
+    # place stairway
+    start = perf_counter()
+    stairway: TowerStairway = buildStairway(editor, towers)
+    print(f'Building stairway took {perf_counter() - start:.2f} seconds.')
 
     # create overview image with matplotlib
     createOverview(editor, buildRect)
