@@ -120,7 +120,6 @@ def buildCastle(editor: Editor, center: ivec3) -> Castle:
     castleBasement = CastleBasement(
         origin = castleOutline.o - Y * castleOutline.basementHeight,
         baseMaterial = basePalette,
-        chest = CryingObsidian,
         beaconColor = 'black',
         width = castleOutline.width,
     )

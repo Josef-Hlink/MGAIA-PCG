@@ -98,6 +98,7 @@ CryingObsidian = Block('crying_obsidian')
 TintedGlass = Block('tinted_glass')
 SpruceLeaves = Block('spruce_leaves')
 EndStoneBricks = Block('end_stone_bricks')
+EndStoneBrickWall = Block('end_stone_brick_wall')
 Magma = Block('magma_block')
 
 DeepSlateBrickSlab = Block('deepslate_brick_slab', {'type': 'top'})

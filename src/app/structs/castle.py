@@ -10,11 +10,11 @@ import numpy as np
 
 from gdpc import Block, Editor
 from gdpc.vector_tools import Y
+from gdpc.minecraft_tools import signBlock
 from glm import ivec3
 
-from .tower import Tower
 from generators import fittingCylinder, cuboid3D, line3D, pyramid, cone
-from materials import Air, Glass, Netherite, Water, Lava, Beacon, Magma, EndStoneBricks, SpruceLog, SpruceLeaves, GlowStone
+from materials import Air, Glass, Netherite, Water, Lava, Beacon, Magma, EndStoneBricks, EndStoneBrickWall, SpruceLog, SpruceLeaves, GlowStone
 
 
 class CastleOutline:
@@ -143,19 +143,17 @@ class CastleBasement:
 
     def __init__(self,
             origin: ivec3,
-            baseMaterial: Block | list[Block], chest: Block,
+            baseMaterial: Block | list[Block],
             beaconColor: str, width: int
         ) -> None:
         """
         origin: reference point (center of the base)
         baseMaterial: will be used for most blocks
-        chest: chest block with the items
         beaconColor: color of the beacon
         width: width of the castle basement
         """
         self.o = origin
         self.baseM = baseMaterial
-        self.chestBlock = chest
         self.beaconColor = beaconColor
         self.width = width
         return
@@ -168,6 +166,10 @@ class CastleBasement:
         editor.placeBlock(self.o + 3 * Y, Block(f'{self.beaconColor}_stained_glass_pane'))
         editor.placeBlock(self.o + 4 * Y, Air)
         editor.placeBlock(self.o + 5 * Y, Water)
+        editor.placeBlock(self.parkourBaseBlocksG, EndStoneBricks)
+        editor.placeBlock(self.parkourWallBlocksG, EndStoneBrickWall)
+        editor.placeBlock(self.o + ivec3(8, 5, -9), self.chest)
+        editor.placeBlock(self.o + ivec3(8, 5, -8), self.textSign)
         return
 
     @property
@@ -188,7 +190,57 @@ class CastleBasement:
             self.o + ivec3(-1, 1, -1),
             self.o + ivec3(+1, 5, +1)
         )
+    
+    @property
+    def parkourBaseBlocksG(self) -> Generator[ivec3, None, None]:
+        """ Generator for positions of the parkour base blocks. """
+        for x in range(3, 8, 2):
+            yield(self.o + ivec3(x, 1, 0))
+        yield self.o + ivec3(7, 1, -7)
+        yield from cuboid3D(
+            self.o + ivec3(7, 4, -7),
+            self.o + ivec3(9, 4, -9)
+        )
+        return
+    
+    @property
+    def parkourWallBlocksG(self) -> Generator[ivec3, None, None]:
+        """ Generator for positions of the parkour wall blocks. """
+        for x in range(3, 8, 2):
+            for y in range(2, 6):
+                if x == 7 and y == 5:
+                    continue
+                yield(self.o + ivec3(x, y, 0))
+        for z in range(0, -5, -2):
+            yield(self.o + ivec3(9, 4, z))
+        yield self.o + ivec3(9, 5, -5)
+        yield self.o + ivec3(7, 2, -7)
+        yield self.o + ivec3(7, 3, -7)
+        yield self.o + ivec3(8, 5, -7)
+        yield from line3D(
+            self.o + ivec3(7, 5, -7),
+            self.o + ivec3(7, 5, -9)
+        )
+        return
+    
+    @property
+    def chest(self) -> Block:
+        """ The chest block with items inside. """
+        answer = f'{42:09b}'
+        items = []
+        for i in range(9):
+            item = 'water_bucket' if int(answer[i]) else 'bucket'
+            items.append(f'{{Slot:{9+i}b,id:"{item}",Count:1b}}')
+        return Block('chest', {'facing': 'east'}, data = '{Items:[' + ','.join(items) + ']}')
 
+    @property
+    def textSign(self) -> Block:
+        """ The final text sign. """
+        return signBlock(
+            wood = 'spruce', rotation = 11,
+            line2 = 'THE ANSWER IS', line3 = '(obviously)',
+            color = 'black', isGlowing = True
+        )
 
 class CastleRoof:
 
