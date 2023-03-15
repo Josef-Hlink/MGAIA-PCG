@@ -54,10 +54,6 @@ class TowerBase:
             self.o + ivec3(r, h, r),
             tube = True
         )
-    @property
-    def wallsPC(self) -> Sequence[ivec3]:
-        """ Positions of the walls. """
-        return list(self.wallsG)
 
 
 class TowerRoom:
@@ -96,10 +92,6 @@ class TowerRoom:
             self.o + ivec3(r, h, r),
             hollow = True
         )
-    @property
-    def wallsPC(self) -> Sequence[ivec3]:
-        """ Positions of the walls. """
-        return list(self.wallsG)
 
 
 class TowerRoof:
@@ -154,10 +146,6 @@ class TowerRoof:
             self.o + ivec3(-r, 0, -r),
             self.o + ivec3(r, 0, r)
         )
-    @property
-    def floorPC(self) -> Sequence[ivec3]:
-        """ Positions of the floor. """
-        return list(self.floorG)
     
     @property
     def guardsG(self) -> Generator[ivec3, None, None]:
@@ -168,10 +156,6 @@ class TowerRoof:
             self.o + ivec3(r, 1, r),
             tube = True
         )
-    @property
-    def guardsPC(self) -> Sequence[ivec3]:
-        """ Positions of the guards. """
-        return list(self.guardsG)
     
     @property
     def beaconPyramidG(self) -> Generator[ivec3, None, None]:
@@ -180,10 +164,6 @@ class TowerRoof:
             origin = self.o + Y,
             height = 4
         )
-    @property
-    def beaconPyramidPC(self) -> Sequence[ivec3]:
-        """ Positions of the beacon pyramid. """
-        return list(self.beaconPyramidG)
     
     @property
     def coneG(self) -> Generator[ivec3, None, None]:
@@ -193,10 +173,6 @@ class TowerRoof:
             height = self.height,
             hollow = True
         )
-    @property
-    def conePC(self) -> Sequence[ivec3]:
-        """ Positions of the cone. """
-        return list(self.coneG)
 
 
 class TowerRoofAccess:
@@ -266,10 +242,6 @@ class TowerRoofAccess:
             self.o + ivec3(self.xSign * +0, -1, -4),
             self.o + ivec3(self.xSign * +1, -1, +4)
         )
-    @property
-    def platformPC(self) -> Sequence[ivec3]:
-        """ Positions of the platform. """
-        return list(self.platformG)
     
     @property
     def ladderG(self) -> Generator[ivec3, None, None]:
@@ -278,10 +250,6 @@ class TowerRoofAccess:
             self.o + ivec3(0, -self.roomH+1, -1),
             self.o + ivec3(0,            -1, +1)
         )
-    @property
-    def ladderPC(self) -> Sequence[ivec3]:
-        """ Positions of the ladder. """
-        return list(self.ladderG)
     
     @property
     def stairsG(self) -> Sequence[Generator[ivec3, None, None]]:
@@ -296,10 +264,6 @@ class TowerRoofAccess:
             self.o + ivec3(self.xSign * -1, 0, -1),
             self.o + ivec3(self.xSign * -1, 0, +1)
         )]
-    @property
-    def stairsPC(self) -> Sequence[Sequence[ivec3]]:
-        """ Positions of the three sets of stairs. """
-        return [list(g) for g in self.stairsG]
     
     @property
     def gateG(self) -> Generator[ivec3, None, None]:
@@ -308,10 +272,6 @@ class TowerRoofAccess:
             self.o + ivec3(self.xSign * 0, +1, -2),
             self.o + ivec3(self.xSign * 2, +3, +2)
         )
-    @property
-    def gatePC(self) -> Sequence[ivec3]:
-        """ Positions of the gate. """
-        return list(self.gateG)
     
     @property
     def gapsG(self) -> Sequence[Generator[ivec3, None, None]]:
@@ -323,10 +283,6 @@ class TowerRoofAccess:
             self.o + ivec3(self.xSign * +0, 0, -1),
             self.o + ivec3(self.xSign * +1, 0, +1)
         )]
-    @property
-    def gapsPC(self) -> Sequence[Sequence[ivec3]]:
-        """ Positions of the two gaps of air. """
-        return [list(g) for g in self.gapsG]
 
 
 class TowerStairway:
@@ -360,6 +316,7 @@ class TowerStairway:
             facing = self._next(facing)
             self.stairM.setFacing(facing)
             editor.placeBlock(self.setOfStairsG(n), self.stairM)
+            editor.placeBlock(self.setOfStairsSupportG(n), self.baseM)
             editor.placeBlock(self.plateauG(n), self.baseM)
         return
 
@@ -421,6 +378,10 @@ class TowerStairway:
                 line3D(o + ivec3(s *-1, -i, s*-i), o + ivec3(s *+1, -i, s*-i)),
                 line3D(o + ivec3(s *+i, -i, s*+1), o + ivec3(s *+i, -i, s*-1))
             ][n % 4]
+    
+    def setOfStairsSupportG(self, n: int) -> Generator[ivec3, None, None]:
+        """ Generator for the support blocks under the n-th set of stairs. """
+        yield from [p - Y for p in self.setOfStairsG(n)]
 
     def plateauG(self, n: int) -> Generator[ivec3, None, None]:
         """ Generator for the plateau connecting the n-th and the (n+1)-th set of stairs. """

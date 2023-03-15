@@ -66,8 +66,8 @@ class Bridge:
         """ Generator for positions of the bridge base. """
         for a in self.walkRange:
             b = self._getB(a)
-            yield self.p(a, b, -1)
-            yield from line3D(self.p(a, b-2, 0), self.p(a, b+2, 0))
+            # yield self.p(a, b, 0)
+            yield from line3D(self.p(a, b-1, 0), self.p(a, b+1, 0))
             yield from [self.p(a, b-2, 1), self.p(a, b+2, 1)]
             if self.hasRoof:
                 yield from line3D(self.p(a, b-1, 4), self.p(a, b+1, 4))
@@ -87,8 +87,8 @@ class Bridge:
         stairsPC = [[], [], [], []]
         for a in self.walkRange:
             b = self._getB(a)
-            stairsPC[0].append(self.p(a, b-1, -1))
-            stairsPC[1].append(self.p(a, b+1, -1))
+            stairsPC[0].append(self.p(a, b-2, 0))
+            stairsPC[1].append(self.p(a, b+2, 0))
             if self.hasRoof:
                 stairsPC[2].extend([self.p(a, b-2, 4), self.p(a, b-1, 5)])
                 stairsPC[3].extend([self.p(a, b+2, 4), self.p(a, b+1, 5)])

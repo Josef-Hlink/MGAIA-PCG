@@ -54,10 +54,6 @@ class CastleOutline:
             self.o + ivec3(-self.width, 0, -self.width),
             self.o + ivec3(+self.width, 0, +self.width)
         )
-    @property
-    def mainfloorPC(self) -> Sequence[ivec3]:
-        """ Positions of the main floor. """
-        return list(self.mainFloorG)
     
     @property
     def basementFloorG(self) -> Generator[ivec3, None, None]:
@@ -66,10 +62,6 @@ class CastleOutline:
             self.o + ivec3(-self.width, -self.basementHeight, -self.width),
             self.o + ivec3(+self.width, -self.basementHeight, +self.width)
         )
-    @property
-    def basementFloorPC(self) -> Sequence[ivec3]:
-        """ Positions of the basement floor. """
-        return list(self.basementFloorG)
     
     @property
     def roofG(self) -> Generator[ivec3, None, None]:
@@ -78,10 +70,6 @@ class CastleOutline:
             self.o + ivec3(-self.width, self.wallHeight, -self.width),
             self.o + ivec3(+self.width, self.wallHeight, +self.width)
         )
-    @property
-    def roofPC(self) -> Sequence[ivec3]:
-        """ Positions of the roof. """
-        return list(self.roofG)
     
     @property
     def cornerPillarsG(self) -> Generator[ivec3, None, None]:
@@ -93,28 +81,20 @@ class CastleOutline:
                 hollow = True
             )
         return
-    @property
-    def cornerPillarsPC(self) -> Sequence[ivec3]:
-        """ Positions of the corner pillars. """
-        return list(self.cornerPillarsG)
 
     @property
     def wallsG(self) -> Generator[ivec3, None, None]:
         """ Generator for positions of the walls. """
         for i, currentCornerPos in enumerate(self.corners.values()):
-            try:
-                nextCornerPos = self.corners[list(self.corners.keys())[i+1]]
-            except IndexError:
+            if i == 3:
                 nextCornerPos = self.corners[list(self.corners.keys())[0]]
+            else:
+                nextCornerPos = self.corners[list(self.corners.keys())[i+1]]
             yield from cuboid3D(
                 currentCornerPos - Y * self.basementHeight,
                 nextCornerPos + Y * self.wallHeight
             )
         return
-    @property
-    def wallsPC(self) -> Sequence[ivec3]:
-        """ Positions of the walls. """
-        return list(self.wallsG)
 
     @property
     def hollowOutG(self) -> Generator[ivec3, None, None]:
@@ -132,10 +112,6 @@ class CastleOutline:
             self.o + ivec3(+self.width - 3, self.wallHeight, +self.width - 3)
         )
         return
-    @property
-    def hollowOutPC(self) -> Sequence[ivec3]:
-        """ Positions of the hollow out. """
-        return list(self.hollowOutG)
     
     @property
     def corners(self) -> dict[str, ivec3]:
@@ -190,10 +166,6 @@ class CastleBasement:
             ) if np.random.rand() < .5
         ]
         return
-    @property
-    def lavaPC(self) -> Sequence[ivec3]:
-        """ Positions of the lava. """
-        return list(self.lavaG)
 
     @property
     def landingStructureG(self) -> Generator[ivec3, None, None]:
@@ -202,10 +174,6 @@ class CastleBasement:
             self.o + ivec3(-1, 1, -1),
             self.o + ivec3(+1, 5, +1)
         )
-    @property
-    def landingStructurePC(self) -> Sequence[ivec3]:
-        """ Positions of the landing structure. """
-        return list(self.landingStructureG)
 
 
 class CastleRoof:
@@ -238,10 +206,6 @@ class CastleRoof:
     def roofPyramidG(self) -> Generator[ivec3, None, None]:
         """ Generator for positions of the roof pyramid. """
         return pyramid(self.o, self.height, True)
-    @property
-    def roofPyramidPC(self) -> Sequence[ivec3]:
-        """ Positions of the roof pyramid. """
-        return list(self.roofPyramidG)
     
     @property
     def conesG(self) -> Generator[ivec3, None, None]:
@@ -249,10 +213,6 @@ class CastleRoof:
         for corner in self.corners.values():
             yield from cone(ivec3(corner.x, self.o.y, corner.z), 3)
         return
-    @property
-    def conesPC(self) -> Sequence[ivec3]:
-        """ Positions of the cones. """
-        return list(self.conesG)
 
 
 class CastleTree:
@@ -307,10 +267,6 @@ class CastleTree:
             self.o + ivec3(-self.r, -3, -self.r),
             self.o + ivec3(+self.r, -1, +self.r)
         )
-    @property
-    def pedestalPC(self) -> Sequence[ivec3]:
-        """ Positions the pedestal. """
-        return list(self.pedestalG)
     
     @property
     def pedestalCutoutG(self) -> Generator[ivec3, None, None]:
@@ -321,10 +277,6 @@ class CastleTree:
                 self.o + ivec3(self.r * x, -1, self.r * z)
             )
         return
-    @property
-    def pedestalCutoutPC(self) -> Sequence[ivec3]:
-        """ Positions the pedestal cutout. """
-        return list(self.pedestalCutoutG)
 
     @property
     def leavesG(self) -> Generator[ivec3, None, None]:
@@ -333,10 +285,6 @@ class CastleTree:
             self.o + ivec3(-8, self.trunkHeight-9, -8),
             self.o + ivec3(+8, self.trunkHeight+5, +8)
         )
-    @property
-    def leavesPC(self) -> Sequence[ivec3]:
-        """ Positions the leaves. """
-        return list(self.leavesG)
 
     @property
     def trunkG(self) -> Generator[ivec3, None, None]:
@@ -347,10 +295,6 @@ class CastleTree:
             if self.trunkA[y, x, z]
         ]
         return
-    @property
-    def trunkPC(self) -> Sequence[ivec3]:
-        """ Positions the trunk. """
-        return list(self.trunkG)
     
     def furthestIndex(self, A: np.ndarray) -> tuple[int, int]:
         """ Return the furthest index from the center of the trunk. """
@@ -403,7 +347,3 @@ class Castle:
             ) if np.random.rand() < .5
         ]
         return
-    @property
-    def lavaPC(self) -> Sequence[ivec3]:
-        """ Positions of the lava on the main floor. """
-        return list(self.lavaG)
