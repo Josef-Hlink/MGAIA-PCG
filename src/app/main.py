@@ -11,7 +11,7 @@ from glm import ivec3
 from structs.tower import Tower, TowerStairway
 from structs.castle import Castle
 from structs.bridge import Bridge
-from builders import buildBounds, buildTowers, buildCastle, buildBridges, buildStairway
+from builders import buildBounds, buildTowers, buildCastle, buildBridges, buildEntryPoints
 from helper import getEditor, getBuildArea, createOverview
 
 
@@ -57,10 +57,10 @@ def main():
     bridges: list[Bridge] = buildBridges(editor, towers)
     print(f'Building bridges took {perf_counter() - start:.2f} seconds.')
 
-    # place stairway
+    # place entry points
     start = perf_counter()
-    stairway: TowerStairway = buildStairway(editor, towers)
-    print(f'Building stairway took {perf_counter() - start:.2f} seconds.')
+    towerStairway, castleStairway = buildEntryPoints(editor, castle, towers)
+    print(f'Building entry points took {perf_counter() - start:.2f} seconds.')
 
     # create overview image with matplotlib
     createOverview(editor, buildRect)

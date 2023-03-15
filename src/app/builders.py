@@ -12,7 +12,7 @@ from gdpc.vector_tools import addY, Y, X
 
 from structs.tower import TowerBase, TowerRoom, TowerRoof, Tower, TowerRoofAccess, TowerStairway
 from structs.bridge import Bridge
-from structs.castle import CastleOutline, CastleBasement, CastleRoof, CastleTree, Castle
+from structs.castle import CastleOutline, CastleBasement, CastleRoof, CastleTree, CastleEntrance, Castle
 from generators import line3D
 from materials import BasePalette, BaseStairPalette, Concrete, CryingObsidian, TintedGlass
 
@@ -172,17 +172,28 @@ def buildBridges(editor: Editor, towers: dict[str, Tower]) -> list[Bridge]:
     return bridges
 
 
-def buildStairway(editor: Editor, towers: dict[str, Tower]) -> TowerStairway:
+def buildEntryPoints(editor: Editor, castle: Castle, towers: dict[str, Tower]) -> TowerStairway:
     """
     Place a stairway around one randomly chosen tower.
-    Returns the stairway.
+    On the opposite district, the castle entrance will be placed.
+    Returns the stairway and the castle entrance.
     """
 
-    tower = np.random.choice(list(towers.values()))
-    stairway = TowerStairway(
+    dT = np.random.choice(['nw', 'sw', 'se', 'ne'])
+    tower = towers[dT]
+    towerStairway = TowerStairway(
         towerBase = tower.base,
         material = BaseStairPalette()
     )
-    stairway.place(editor)
+    towerStairway.place(editor)
 
-    return stairway
+    dC = {'nw': 'se', 'sw': 'ne', 'se': 'nw', 'ne': 'sw'}[dT]
+
+    castleEntrance = CastleEntrance(
+        origin = castle.outline.corners[dC] + 20 * Y,
+        district = dC,
+        material = BasePalette()
+    )
+    castleEntrance.place(editor)
+
+    return towerStairway, castleEntrance

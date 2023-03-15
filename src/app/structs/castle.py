@@ -12,8 +12,9 @@ from gdpc import Block, Editor
 from gdpc.vector_tools import Y
 from glm import ivec3
 
+from .tower import Tower
 from generators import fittingCylinder, cuboid3D, line3D, pyramid, cone
-from materials import Air, Glass, Netherite, Water, Lava, Beacon, Magma, EndStoneBricks, SpruceLog, SpruceLeaves
+from materials import Air, Glass, Netherite, Water, Lava, Beacon, Magma, EndStoneBricks, SpruceLog, SpruceLeaves, GlowStone
 
 
 class CastleOutline:
@@ -43,6 +44,7 @@ class CastleOutline:
         editor.placeBlock(self.basementFloorG, self.baseM)
         editor.placeBlock(self.roofG, self.baseM)
         editor.placeBlock(self.cornerPillarsG, self.baseM)
+        editor.placeBlock(self.coneBasesG, self.baseM)
         editor.placeBlock(self.wallsG, self.baseM)
         editor.placeBlock(self.hollowOutG, Air)
         return
@@ -83,6 +85,16 @@ class CastleOutline:
         return
 
     @property
+    def coneBasesG(self) -> Generator[ivec3, None, None]:
+        """ Generator for positions of the cone base. """
+        for cornerPos in self.corners.values():
+            yield from fittingCylinder(
+                cornerPos + ivec3(-4, self.wallHeight + 1, -4),
+                cornerPos + ivec3(+4, self.wallHeight + 1, +4)
+            )
+        return
+
+    @property
     def wallsG(self) -> Generator[ivec3, None, None]:
         """ Generator for positions of the walls. """
         for i, currentCornerPos in enumerate(self.corners.values()):
@@ -99,28 +111,30 @@ class CastleOutline:
     @property
     def hollowOutG(self) -> Generator[ivec3, None, None]:
         """ Generator for positions of the hollow out. """
+        w, wH, bH = self.width, self.wallHeight, self.basementHeight
         yield from cuboid3D(
-            self.o + ivec3(-self.width + 1,                +1, -self.width + 1),
-            self.o + ivec3(+self.width - 1, self.wallHeight-1, +self.width - 1)
+            self.o + ivec3(-w + 1,    +1, -w + 1),
+            self.o + ivec3(+w - 1, wH -1, +w - 1)
         )
         yield from cuboid3D(
-            self.o + ivec3(-self.width + 1, -self.basementHeight+1, -self.width + 1),
-            self.o + ivec3(+self.width - 1,                     -1, +self.width - 1)
+            self.o + ivec3(-w + 1, -bH + 1, -w + 1),
+            self.o + ivec3(+w - 1,      -1, +w - 1)
         )
         yield from cuboid3D(
-            self.o + ivec3(-self.width + 3, self.wallHeight, -self.width + 3),
-            self.o + ivec3(+self.width - 3, self.wallHeight, +self.width - 3)
+            self.o + ivec3(-w + 3, wH, -w + 3),
+            self.o + ivec3(+w - 3, wH, +w - 3)
         )
         return
     
     @property
     def corners(self) -> dict[str, ivec3]:
         """ Get the corners' coordinates. """
+        w = self.width
         return {
-            'nw': self.o + ivec3(-self.width, 0, -self.width),
-            'sw': self.o + ivec3(-self.width, 0, +self.width),
-            'se': self.o + ivec3(+self.width, 0, +self.width),
-            'ne': self.o + ivec3(+self.width, 0, -self.width)
+            'nw': self.o + ivec3(-w, 0, -w),
+            'sw': self.o + ivec3(-w, 0, +w),
+            'se': self.o + ivec3(+w, 0, +w),
+            'ne': self.o + ivec3(+w, 0, -w)
         }
 
 
@@ -206,12 +220,12 @@ class CastleRoof:
     def roofPyramidG(self) -> Generator[ivec3, None, None]:
         """ Generator for positions of the roof pyramid. """
         return pyramid(self.o, self.height, True)
-    
+
     @property
     def conesG(self) -> Generator[ivec3, None, None]:
         """ Generator for positions of the cones. """
         for corner in self.corners.values():
-            yield from cone(ivec3(corner.x, self.o.y, corner.z), 3)
+            yield from cone(ivec3(corner.x, self.o.y + 1, corner.z), 4)
         return
 
 
@@ -340,10 +354,89 @@ class Castle:
     @property
     def lavaG(self) -> Generator[ivec3, None, None]:
         """ Generator for positions of the lava on the main floor. """
+        w, h = self.outline.width, self.outline.wallHeight
         yield from [
             p for p in cuboid3D(
-                self.o + ivec3(-self.outline.width+1, 1, -self.outline.width+1),
-                self.o + ivec3(+self.outline.width-1, 1, +self.outline.width-1)
+                self.o + ivec3(-w+1, 1, -w+1),
+                self.o + ivec3(+w-1, 1, +w-1)
             ) if np.random.rand() < .5
         ]
+        for x, z in [(1, 1), (1, -1), (-1, 1), (-1, -1)]:
+            yield self.o + ivec3(x * (w-1), h-1, z * (w-1))
+            yield self.o + ivec3(x * (w+1), h-1, z * (w+1))
+        return
+
+
+class CastleEntrance:
+    """ An entrance to the castle from the roof of a tower. """
+
+    def __init__(self, origin: ivec3, district: str, material: Block | Sequence[Block]) -> None:
+        """
+        origin: the origin of the entrance
+        district: the district of the castle's corner in which the entrance should be
+        material: the material of the blocks making up the entrance
+        """
+        self.o = origin
+        self.material = material
+        self.district = district
+        return
+
+    def place(self, editor: Editor) -> None:
+        """ Place the entrance in the Minecraft. """
+        editor.placeBlock(self.platformsG, self.material)
+        editor.placeBlock(self.lavaGuardG, self.material)
+        editor.placeBlock(self.cutoutsG, Air)
+        return
+
+    @property
+    def xSign(self) -> int:
+        """ The sign of the x coordinate of the entrance. """
+        return {'w': +1, 'e': -1}[self.district[1]]
+    
+    @property
+    def zSign(self) -> int:
+        """ The sign of the z coordinate of the entrance. """
+        return {'n': +1, 's': -1}[self.district[0]]
+
+    @property
+    def platformsG(self) -> Generator[ivec3, None, None]:
+        """ Generator for positions of the platforms. """
+        yield from fittingCylinder(
+            self.o + ivec3(-5, 0, -5),
+            self.o + ivec3(+5, 0, +5)
+        )
+        yield from fittingCylinder(
+            self.o + ivec3(-3, 4, -3),
+            self.o + ivec3(+3, 4, +3)
+        )
+        return
+    
+    @property
+    def lavaGuardG(self) -> Generator[ivec3, None, None]:
+        """ Generator for positions of the lava guard. """
+        return fittingCylinder(
+            self.o + ivec3(-3, 5, -3),
+            self.o + ivec3(+3, 5, +3),
+            tube = True
+        )
+
+    @property
+    def cutoutsG(self) -> Generator[ivec3, None, None]:
+        """ Generator for positions of the cutouts. """
+        yield from line3D(
+            self.o + ivec3(self.xSign * -5, 0, -1),
+            self.o + ivec3(self.xSign * -5, 0, +1)
+        )
+        yield from line3D(
+            self.o + ivec3(-1, 0, self.zSign * -5),
+            self.o + ivec3(+1, 0, self.zSign * -5)
+        )
+        yield from line3D(
+            self.o + ivec3(self.xSign * -2, 1, self.zSign * -2),
+            self.o + ivec3(self.xSign * -2, 3, self.zSign * -2)
+        )
+        yield from cuboid3D(
+            self.o + Y,
+            self.o + ivec3(self.xSign * 2, 3, self.zSign * 2)
+        )
         return
