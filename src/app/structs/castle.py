@@ -437,7 +437,10 @@ class CastleEntrance:
         """ Place the entrance in the Minecraft. """
         editor.placeBlock(self.platformsG, self.material)
         editor.placeBlock(self.lavaGuardG, self.material)
+        editor.placeBlock(self.markingG, Magma)
         editor.placeBlock(self.cutoutsG, Air)
+        editor.placeBlock(self.poleG, Magma)
+        editor.placeBlock(self.o + ivec3(self.xSign * 2, 1, self.zSign * 2), self.textSign)
         return
 
     @property
@@ -454,8 +457,8 @@ class CastleEntrance:
     def platformsG(self) -> Generator[ivec3, None, None]:
         """ Generator for positions of the platforms. """
         yield from fittingCylinder(
-            self.o + ivec3(-5, 0, -5),
-            self.o + ivec3(+5, 0, +5)
+            self.o + ivec3(-3, 0, -3),
+            self.o + ivec3(+3, 0, +3)
         )
         yield from fittingCylinder(
             self.o + ivec3(-3, 4, -3),
@@ -473,16 +476,23 @@ class CastleEntrance:
         )
 
     @property
+    def markingG(self) -> Generator[ivec3, None, None]:
+        """ Generator for positions of the marking. """
+        yield from line3D(
+            self.o + ivec3(self.xSign * -3, 0, self.zSign * -1),
+            self.o + ivec3(self.xSign * -3, 4, self.zSign * -1)
+        )
+        yield from line3D(
+            self.o + ivec3(self.xSign * -1, 0, self.zSign * -3),
+            self.o + ivec3(self.xSign * -1, 4, self.zSign * -3)
+        )
+        yield self.o + ivec3(self.xSign * -2, 0, self.zSign * -2)
+        yield self.o + ivec3(self.xSign * -2, 4, self.zSign * -2)
+        return
+
+    @property
     def cutoutsG(self) -> Generator[ivec3, None, None]:
         """ Generator for positions of the cutouts. """
-        yield from line3D(
-            self.o + ivec3(self.xSign * -5, 0, -1),
-            self.o + ivec3(self.xSign * -5, 0, +1)
-        )
-        yield from line3D(
-            self.o + ivec3(-1, 0, self.zSign * -5),
-            self.o + ivec3(+1, 0, self.zSign * -5)
-        )
         yield from line3D(
             self.o + ivec3(self.xSign * -2, 1, self.zSign * -2),
             self.o + ivec3(self.xSign * -2, 3, self.zSign * -2)
@@ -492,3 +502,18 @@ class CastleEntrance:
             self.o + ivec3(self.xSign * 2, 3, self.zSign * 2)
         )
         return
+    
+    @property
+    def poleG(self) -> Generator[ivec3, None, None]:
+        """ Generator for positions of the pole in the middle. """
+        return line3D(self.o + Y, self.o + 3 * Y)
+
+    @property
+    def textSign(self) -> str:
+        """ A text sign with a hint. """
+        rotation = {'sw': 2, 'nw': 6, 'ne': 10, 'se': 14}[self.district]
+        return signBlock(
+            wood = 'spruce', rotation = rotation,
+            line1 = 'Look', line2 = 'for', line3 = 'the', line4 = 'Light',
+            color = 'black', isGlowing = True
+        )
