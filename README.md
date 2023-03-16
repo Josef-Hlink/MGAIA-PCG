@@ -46,3 +46,13 @@ The other towers are only reachable via the bridges that connect them.
 You might also notice that the castle in the middle is not accessible from the ground.
 The first goal is to figure out how to get into this castle (without completely destroying the structure, of course).
 On your way, please enjoy the different interiors of the towers.
+
+## Images
+
+A top-down view of the structure:
+
+![overview](./overview.png)
+
+A 3D view of the structure at night:
+
+![at night](./night.png)
