@@ -30,7 +30,7 @@ def main():
 
     start = perf_counter()
 
-    if sys.argv[1] == '--dev':
+    if len(sys.argv) > 1 and sys.argv[1] == '--dev':
         buildBounds(editor, buildRect, base)
 
     absoluteCenter: ivec3 = addY(buildRect.center, base)

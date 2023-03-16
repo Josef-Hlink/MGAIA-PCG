@@ -333,7 +333,8 @@ class TowerStairway:
             facing = self._next(facing)
             self.stairM.setFacing(facing)
             editor.placeBlock(self.setOfStairsG(n), self.stairM)
-            editor.placeBlock(self.setOfStairsAirG(n), Air)
+            if n > 1:
+                editor.placeBlock(self.setOfStairsAirG(n), Air)
             editor.placeBlock(self.setOfStairsSupportG(n), self.baseM)
             editor.placeBlock(self.plateauG(n), self.baseM)
             editor.placeBlock(self.plateauAirG(n), Air)
@@ -550,9 +551,9 @@ class Tower:
         """ The block object of the tower's chest. """
         item = {
             'nostalgic': 'minecraft:apple',
-            'crimson': 'minecraft:ender_eye',
-            'warped': 'minecraft:ender_eye',
+            'crimson': 'minecraft:ender_pearl',
+            'warped': 'minecraft:ender_pearl',
             'endgame': 'minecraft:golden_apple'
         }[self.interiorType]
         facing = {'e': 'east', 'w': 'west'}[self.district[1]]
-        return Block('chest', {'facing': facing}, data = f'{{Items:[{{Slot:13b,id:"{item}",Count:1b}}]}}')
+        return Block('chest', {'facing': facing}, data = f'{{Items:[{{Slot:13b,id:"{item}",Count:3b}}]}}')
