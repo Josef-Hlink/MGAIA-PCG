@@ -14,8 +14,7 @@ To run the code, you will need to have the following software installed:
 
 - Minecraft 1.19.2 (Java Edition)
 - Forge for Minecraft 1.19.2 [download](https://files.minecraftforge.net/net/minecraftforge/forge/index_1.19.2.html)
-- The GDMC HTTP interface mod [download](https://github.com/Niels-NTG/gdmc_
-http_interface/releases/tag/v1.0.0)
+- The GDMC HTTP interface mod [download](https://github.com/Niels-NTG/gdmc_http_interface/releases/tag/v1.0.0)
 - The GPDC Python package [download](https://github.com/avdstaaij/gdpc)
 - Python 3.10.9 ^
 - NumPy 1.24.2 ^
