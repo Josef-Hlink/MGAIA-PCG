@@ -13,7 +13,7 @@ from gdpc.vector_tools import addY, Y, X
 from structs.tower import Tower, TowerBase, TowerRoom, TowerRoof, TowerRoofAccess, TowerStairway
 from structs.bridge import Bridge
 from structs.castle import Castle, CastleOutline, CastleBasement, CastleRoof, CastleTree, CastleEntrance
-from structs.interior import Interior, ExoticWoodInterior, NostalgicInterior
+from structs.interior import Interior, ExoticWoodInterior, NostalgicInterior, EndGameInterior
 from generators import line3D
 from materials import BasePalette, BaseStairPalette, Concrete, CryingObsidian, TintedGlass
 
@@ -207,33 +207,20 @@ def buildInteriors(editor: Editor, towers: dict[str, Tower], referenceDistrict: 
     Place the interior of the towers.
     The reference district is the tower with the stairway, it get the nostalgic interior.
     This tower gets the nostalgic interior.
-    The opposite tower gets no interior.
+    The opposite tower gets the end game interior.
     The remaining two get ExoticWood interiors (one crimson, one warped).
     """
 
-    interiors: dict[str, Interior] = {}
-    rD = referenceDistrict
-
-    nostalgicInterior = NostalgicInterior(towers[rD])
-    interiors[rD] = nostalgicInterior
-
-    # opposite
-    opposite = {'nw': 'se', 'sw': 'ne', 'se': 'nw', 'ne': 'sw'}[rD]
-    interiors[opposite] = None
-
-    # crimson
-    remaining = [d for d in towers.keys() if d not in [rD, opposite]]
-    crimson = np.random.choice(remaining)
-    crimsonInterior = ExoticWoodInterior(towers[crimson], 'crimson')
-    interiors[crimson] = crimsonInterior
-
-    # warped
-    remaining.remove(crimson)
-    warpedInterior = ExoticWoodInterior(towers[remaining[0]], 'warped')
-    interiors[remaining[0]] = warpedInterior
-
-    for interior in interiors.values():
-        if interior is not None:
-            interior.place(editor)
+    exoticKind = 'warped'
+    interiors: dict[str, Interior] = {d: None for d in towers.keys()}
+    for d in interiors.keys():
+        if d == referenceDistrict:
+            interiors[d] = NostalgicInterior(towers[d])
+        elif d == {'nw': 'se', 'sw': 'ne', 'se': 'nw', 'ne': 'sw'}[referenceDistrict]:
+            interiors[d] = EndGameInterior(towers[d])
+        else:
+            interiors[d] = ExoticWoodInterior(towers[d], exoticKind)
+            exoticKind = 'crimson'
+        interiors[d].place(editor)
 
     return interiors

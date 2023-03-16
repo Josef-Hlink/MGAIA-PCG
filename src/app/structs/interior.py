@@ -13,8 +13,9 @@ from gdpc.vector_tools import Y
 from glm import ivec3
 
 from .tower import Tower
-from generators import cuboid3D, fittingCylinder, line3D, triangle, cone
+from generators import cuboid3D, fittingCylinder, line3D, triangle
 from materials import BaseSlabPalette, pot, signBlock, Air, Chain, Lantern, SoulLantern, GrassBlock
+
 
 class Interior:
     """ base class """
@@ -95,110 +96,11 @@ class Interior:
         return {'n': -1, 's': 1}[self.district[0]]
 
 
-class ExoticWoodInterior(Interior):
-    """ Exotic (crimson or warped) wood interior. """
-
-    def __init__(self, tower: Tower, kind: str) -> None:
-        assert kind in ['crimson', 'warped'], f'Invalid wood type: {kind}, must be crimson or warped.'
-        super().__init__(tower)
-        self.kind = kind
-        self.gardens = {district: None for district in ['nw', 'ne', 'sw', 'se']}
-        for district in self.gardens.keys():
-            xs, zs = {'w': -1, 'e': 1}[district[1]], {'n': -1, 's': 1}[district[0]]
-            gO = self.o + ivec3(xs * 3, 0, zs * 3)
-            garden = ExoticGarden(gO, self.kind, self.height, district)
-            self.gardens[district] = garden
-        self.table = Table(self.o, self.kind, self.kind + '_fungus')
-        if self.kind == 'crimson':
-            self._fixLanternChains(5)
-            self.lantern = Lantern
-        else:
-            self._fixLanternChains(10)
-            self.lantern = SoulLantern
-        return
-
-    def place(self, editor: Editor) -> None:
-        """ Place the interior in Minecraft. """
-        editor.placeBlock(self.floorG, Block(f'{self.kind}_slab', {'type': 'bottom'}))
-        editor.placeBlock(self.plinthG, Block(f'{self.kind}_planks'))
-        editor.placeBlock(self.ceilingG, BaseSlabPalette('top'))
-        editor.placeBlock(self.lanternChainsG, Chain)
-        editor.placeBlock(self.lanternsG, self.lantern)
-        for garden in self.gardens.values():
-            garden.place(editor)
-        self.table.place(editor)
-        xS, zS, r = self.xSign, self.zSign, self.radius
-        xE, zE = self.o + ivec3(xS * -r, 4, 0), self.o + ivec3(0, 4, zS * -r)
-        editor.placeBlock(xE, self._getTextSign(self.district[1], self.kind))
-        editor.placeBlock(zE, self._getTextSign(self.district[0], self.kind))
-        return
-        
-    @property
-    def invalidLanternPC(self) -> Sequence[ivec3]:
-        """ Invalid lantern point collection. """
-        invalid = []
-        for garden in self.gardens.values():
-            invalid.extend(garden.hyphaeG)
-            invalid.extend(garden.boundsG)
-        return invalid
-
-class Table:
-    """ A table to be placed in the middle of a tower room. """
-
-    def __init__(self, origin: ivec3, woodType: str, plant: str) -> None:
-        self.o = origin
-        self.woodType = woodType
-        self.plant = plant
-        return
-
-    def place(self, editor: Editor) -> None:
-        """ Place the table in Minecraft. """
-        editor.placeBlock(self.baseG, Block(self.woodType + '_planks'))
-        editor.placeBlock(self.cutoutG, Air)
-        editor.placeBlock(self.legsG, Block(self.woodType + '_fence'))
-        editor.placeBlock(self.topG, Block(self.woodType + '_slab'))
-        editor.placeBlock(self.o + Y*2, pot(self.plant))
-        return
-
-    @property
-    def baseG(self) -> Generator[ivec3, None, None]:
-        """ Generator for the table base. """
-        return cuboid3D(
-            self.o + ivec3(-1, -1, -1),
-            self.o + ivec3(+1, -1, +1)
-        )
-
-    @property
-    def cutoutG(self) -> Generator[ivec3, None, None]:
-        """ Generator for the table cutout. """
-        return cuboid3D(
-            self.o + ivec3(-1, 0, -1),
-            self.o + ivec3(+1, 0, +1)
-        )
-
-    @property
-    def legsG(self) -> Generator[ivec3, None, None]:
-        """ Generator for the table legs. """
-        for x, z in [(-1, -1), (-1, +1), (+1, -1), (+1, +1)]:
-            yield self.o + ivec3(x, 0, z)
-
-    @property
-    def topG(self) -> Generator[ivec3, None, None]:
-        """ Generator for the tabletop. """
-        return cuboid3D(
-            self.o + ivec3(-1, 1, -1),
-            self.o + ivec3(+1, 1, +1)
-        )
-
-
-
 class NostalgicInterior(Interior):
     """ Nostalgic interior with a small birch house and a birch tree on a grass plane. """
 
     def __init__(self, tower: Tower) -> None:
         super().__init__(tower)
-        self.tree = None
-        self.house = None
         self.direction = self.district[0]
         self.garden = NostalgicGarden(self.o, self.height, self.district[0])
         self._fixLanternChains(3)
@@ -297,6 +199,103 @@ class NostalgicInterior(Interior):
         return [ivec3(p.x, self.o.y + self.height, p.z) for p in [*self.houseOutlineG, *self.garden.treeLeavesG]]
 
 
+class EndGameInterior(Interior):
+    """ Interior with an endgame feel. """
+
+    def __init__(self, tower: Tower) -> None:
+        super().__init__(tower)
+        self.district = tower.district
+        self.table = Table(tower.o, 'deepslate', 'wither_rose')
+        self.endPortal = EndPortal(self.o + ivec3(0, 0, self.zSign * 7))
+        self._fixLanternChains(20)
+
+    def place(self, editor: Editor) -> None:
+        """ Place the interior in Minecraft. """
+        editor.placeBlock(self.floorG, Block('deepslate_tile_slab', {'type': 'bottom'}))
+        editor.placeBlock(self.plinthG, Block('deepslate_tiles'))
+        editor.placeBlock(self.ceilingG, BaseSlabPalette('top'))
+        lichenStates = {d: 'true' for d in ['north', 'east', 'south', 'west', 'up', 'down']}
+        editor.placeBlock(self.lichenG, Block('glow_lichen', lichenStates))
+        self.table.place(editor)
+        editor.placeBlock(self.lanternChainsG, Chain)
+        editor.placeBlock(self.lanternsG, SoulLantern)
+        xS, zS, r = self.xSign, self.zSign, self.radius
+        xE, zE = self.o + ivec3(xS * -r, 4, 0), self.o + ivec3(0, 4, zS * -r)
+        editor.placeBlock(xE, self._getTextSign(self.district[1], 'spruce'))
+        editor.placeBlock(zE, self._getTextSign(self.district[0], 'spruce'))
+        self.endPortal.place(editor)
+
+    @property
+    def invalidLanternPC(self) -> Sequence[ivec3]:
+        """ Invalid lantern point collection. """
+        return []
+
+    @property
+    def ceilingG(self) -> Generator[ivec3, None, None]:
+        return fittingCylinder(
+            self.o + ivec3(-(self.radius-1), self.height, -(self.radius-1)),
+            self.o + ivec3((self.radius-1), self.height, (self.radius-1))
+        )
+
+    @property
+    def lichenG(self) -> Generator[ivec3, None, None]:
+        """ Generator for the glow lichen. """
+        yield from [p for p in fittingCylinder(
+                self.o + ivec3(-self.radius, 1, -self.radius),
+                self.o + ivec3(self.radius, self.height, self.radius),
+                tube = True
+            ) if p.x != self.o.x + self.xSign * self.radius
+        ]
+
+
+class ExoticWoodInterior(Interior):
+    """ Exotic (crimson or warped) wood interior. """
+
+    def __init__(self, tower: Tower, kind: str) -> None:
+        assert kind in ['crimson', 'warped'], f'Invalid wood type: {kind}, must be crimson or warped.'
+        super().__init__(tower)
+        self.kind = kind
+        self.gardens = {district: None for district in ['nw', 'ne', 'sw', 'se']}
+        for district in self.gardens.keys():
+            xs, zs = {'w': -1, 'e': 1}[district[1]], {'n': -1, 's': 1}[district[0]]
+            gO = self.o + ivec3(xs * 3, 0, zs * 3)
+            garden = ExoticGarden(gO, self.kind, self.height, district)
+            self.gardens[district] = garden
+        self.table = Table(self.o, self.kind, self.kind + '_fungus')
+        if self.kind == 'crimson':
+            self._fixLanternChains(5)
+            self.lantern = Lantern
+        else:
+            self._fixLanternChains(10)
+            self.lantern = SoulLantern
+        return
+
+    def place(self, editor: Editor) -> None:
+        """ Place the interior in Minecraft. """
+        editor.placeBlock(self.floorG, Block(f'{self.kind}_slab', {'type': 'bottom'}))
+        editor.placeBlock(self.plinthG, Block(f'{self.kind}_planks'))
+        editor.placeBlock(self.ceilingG, BaseSlabPalette('top'))
+        editor.placeBlock(self.lanternChainsG, Chain)
+        editor.placeBlock(self.lanternsG, self.lantern)
+        for garden in self.gardens.values():
+            garden.place(editor)
+        self.table.place(editor)
+        xS, zS, r = self.xSign, self.zSign, self.radius
+        xE, zE = self.o + ivec3(xS * -r, 4, 0), self.o + ivec3(0, 4, zS * -r)
+        editor.placeBlock(xE, self._getTextSign(self.district[1], self.kind))
+        editor.placeBlock(zE, self._getTextSign(self.district[0], self.kind))
+        return
+        
+    @property
+    def invalidLanternPC(self) -> Sequence[ivec3]:
+        """ Invalid lantern point collection. """
+        invalid = []
+        for garden in self.gardens.values():
+            invalid.extend(garden.hyphaeG)
+            invalid.extend(garden.boundsG)
+        return invalid
+
+
 class NostalgicGarden:
     """ A grass garden spanning the x axis. """
 
@@ -383,7 +382,6 @@ class NostalgicGarden:
         pc.remove(self.o + ivec3(-2, 0, self.sign * 2))
         yield from pc
 
-
     @property
     def grassBlocksG(self) -> Generator[ivec3, None, None]:
         """ Generator for the grass blocks. """
@@ -405,7 +403,7 @@ class NostalgicGarden:
         )
         yield from cuboid3D(
             self.o + ivec3(-4, -1, self.sign * 2),
-            self.o + ivec3(4, -1, self.sign * 9)
+            self.o + ivec3(4, -1, self.sign * 8)
         )
         return
 
@@ -429,6 +427,7 @@ class NostalgicGarden:
     def opp(self, direction: str) -> str:
         """ Opposite direction. """
         return {'n': 's', 's': 'n'}[direction]
+
 
 class ExoticGarden:
     """ A garden (crimson or warped) to be placed in one of the corners of a tower. """
@@ -528,3 +527,91 @@ class ExoticGarden:
     def zSign(self) -> int:
         """ Sign of the z coordinate. """
         return {'n': -1, 's': 1}[self.district[0]]
+
+
+class Table:
+    """ A table to be placed in the middle of a tower room. """
+
+    def __init__(self, origin: ivec3, material: str, plant: str) -> None:
+        self.o = origin
+        self.m = material
+        self.baseM = Block(material + '_planks') if material in ['crimson', 'warped'] else Block(material + '_tiles')
+        self.legM = Block(material + '_fence') if material in ['crimson', 'warped'] else Block(material + '_tile_wall')
+        self.slabM = Block(material + '_slab') if material in ['crimson', 'warped'] else Block(material + '_tile_slab')
+        self.plant = plant
+        return
+
+    def place(self, editor: Editor) -> None:
+        """ Place the table in Minecraft. """
+        editor.placeBlock(self.baseG, self.baseM)
+        editor.placeBlock(self.cutoutG, Air)
+        editor.placeBlock(self.legsG, self.legM)
+        editor.placeBlock(self.topG, self.slabM)
+        editor.placeBlock(self.o + Y*2, pot(self.plant))
+        return
+
+    @property
+    def baseG(self) -> Generator[ivec3, None, None]:
+        """ Generator for the table base. """
+        return cuboid3D(
+            self.o + ivec3(-1, -1, -1),
+            self.o + ivec3(+1, -1, +1)
+        )
+
+    @property
+    def cutoutG(self) -> Generator[ivec3, None, None]:
+        """ Generator for the table cutout. """
+        return cuboid3D(
+            self.o + ivec3(-1, 0, -1),
+            self.o + ivec3(+1, 0, +1)
+        )
+
+    @property
+    def legsG(self) -> Generator[ivec3, None, None]:
+        """ Generator for the table legs. """
+        for x, z in [(-1, -1), (-1, +1), (+1, -1), (+1, +1)]:
+            yield self.o + ivec3(x, 0, z)
+
+    @property
+    def topG(self) -> Generator[ivec3, None, None]:
+        """ Generator for the tabletop. """
+        return cuboid3D(
+            self.o + ivec3(-1, 1, -1),
+            self.o + ivec3(+1, 1, +1)
+        )
+
+
+class EndPortal:
+    """ A working end portal with a deepslate tile wall around it. """
+
+    def __init__(self, origin: ivec3) -> None:
+        self.o = origin
+        return
+    
+    def place(self, editor: Editor) -> None:
+        """ Place the end portal in Minecraft. """
+        editor.placeBlock(
+            cuboid3D(self.o + ivec3(-1, -1, -1), self.o + ivec3(1, -1, 1)),
+            Block('deepslate_tiles')
+        )
+        editor.placeBlock(
+            cuboid3D(self.o + ivec3(-1, 0, -1), self.o + ivec3(1, 0, 1)),
+            Block('end_portal')
+        )
+        for x1, x2, z1, z2, facing in (
+            (-2, 2, -2, -2, 'south'),
+            (-2, 2, 2, 2, 'north'),
+            (-2, -2, -2, 2, 'east'),
+            (2, 2, -2, 2, 'west')
+        ):
+            editor.placeBlock(
+                line3D(self.o + ivec3(x1, 0, z1), self.o + ivec3(x2, 0, z2)),
+                Block('end_portal_frame', {'facing': facing, 'eye': 'true'})
+            )
+            editor.placeBlock(
+                line3D(self.o + ivec3(x1, 1, z1), self.o + ivec3(x2, 1, z2)),
+                Block('deepslate_tile_wall')
+            )
+        for x, z in ((-2, -2), (-2, 2), (2, -2), (2, 2)):
+            editor.placeBlock(self.o + ivec3(x, 0, z), Block('deepslate_tiles'))
+        return
