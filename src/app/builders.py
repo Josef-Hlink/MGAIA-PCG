@@ -13,7 +13,7 @@ from gdpc.vector_tools import addY, Y, X
 from structs.tower import Tower, TowerBase, TowerRoom, TowerRoof, TowerRoofAccess, TowerStairway
 from structs.bridge import Bridge
 from structs.castle import Castle, CastleOutline, CastleBasement, CastleRoof, CastleTree, CastleEntrance
-from structs.interior import Interior, CrimsonInterior
+from structs.interior import Interior, ExoticWoodInterior
 from generators import line3D
 from materials import BasePalette, BaseStairPalette, Concrete, CryingObsidian, TintedGlass
 
@@ -208,7 +208,10 @@ def buildInteriors(editor: Editor, towers: dict[str, Tower]) -> None:
     interiors = {}
 
     for tower in towers.values():
-        interior = CrimsonInterior(tower)
+        if tower.district[1] == 'w':
+            interior = ExoticWoodInterior(tower, 'crimson')
+        else:
+            interior = ExoticWoodInterior(tower, 'warped')
         interior.place(editor)
 
         interiors[tower.district] = interior

@@ -122,22 +122,10 @@ Magma = Block('magma_block')
 
 
 Chain = Block('chain')
-FlowerPot = Block('flower_pot')
-
-
-CrimsonNylium = Block('crimson_nylium')
-CrimsonHyphae = Block('crimson_hyphae')
-CrimsonPlanks = Block('crimson_planks')
-CrimsonSlab = Block('crimson_slab', {'type': 'bottom'})
-CrimsonFence = Block('crimson_fence')
-CrimsonSign = Block('crimson_sign')
-CrimsonRoots = Block('crimson_roots')
-WeepingVines = Block('weeping_vines')
-
 Lantern = Block('lantern', {'hanging': 'true'})
 SoulLantern = Block('soul_lantern', {'hanging': 'true'})
 
-def Pot(plant: str) -> Block:
+def pot(plant: str) -> Block:
     return Block(f'potted_{plant}')
 
 

@@ -14,8 +14,7 @@ from glm import ivec3
 
 from .tower import Tower
 from generators import cuboid3D, fittingCylinder, line3D, triangle
-from materials import (Air, BaseSlabPalette, CrimsonPlanks, CrimsonSlab, CrimsonFence, CrimsonSign, CrimsonRoots, WeepingVines,
-                       Lantern, SoulLantern, Chain, GlowStone, Pot, CrimsonNylium, CrimsonHyphae, signBlock)
+from materials import BaseSlabPalette, pot, signBlock, Air, Chain, Lantern, SoulLantern
 
 class Interior:
     """ base class """
@@ -28,7 +27,7 @@ class Interior:
         return
 
     @property
-    def floorGenerator(self) -> Generator[ivec3, None, None]:
+    def floorG(self) -> Generator[ivec3, None, None]:
         """ Generator for the floor. """
         return fittingCylinder(
             self.o + ivec3(-self.radius, 0, -self.radius),
@@ -36,7 +35,7 @@ class Interior:
         )
 
     @property
-    def plinthGenerator(self) -> Generator[ivec3, None, None]:
+    def plinthG(self) -> Generator[ivec3, None, None]:
         """ Generator for the plinth. """
         return fittingCylinder(
             self.o + ivec3(-self.radius, 0, -self.radius),
@@ -47,22 +46,29 @@ class Interior:
     @property
     def ceilingG(self) -> Generator[ivec3, None, None]:
         """ Generator for the ceiling. """
-        # filter out the points that would interfere with the ladders (at the x extremes)
         yield from [p for p in fittingCylinder(
             self.o + ivec3(-self.radius, self.height, -self.radius),
             self.o + ivec3(+self.radius, self.height, +self.radius)
             ) if p.x != self.o.x + self.xSign * self.radius
         ]
 
+    @property
+    def invalidLanternPC(self) -> Sequence[ivec3]:
+        """ Invalid lantern point collection. """
+        invalid = []
+        for garden in self.gardens.values():
+            invalid.extend(garden.hyphaeG)
+            invalid.extend(garden.boundsG)
+        return invalid
+
     def _fixLanternChains(self, n: int) -> None:
         """ Static point collection for the lantern chains. """
         r, h = self.radius - 3, self.height
         candidates = list(fittingCylinder(self.o + ivec3(-r, h, -r), self.o + ivec3(+r, h, +r)))
-        # filter out invalid candidates
         candidates = list(filter(lambda c: c not in self.invalidLanternPC, candidates))
         self.lanternChainsPC = []
         for o in [candidates[i] for i in np.random.choice(len(candidates), n, replace = False)]:
-            self.lanternChainsPC.append([o - Y * i for i in range(np.random.randint(1, 3))])
+            self.lanternChainsPC.append([o - Y * i for i in range(np.random.randint(1, 4))])
         return
     
     @property
@@ -77,6 +83,16 @@ class Interior:
         for pc in self.lanternChainsPC:
             yield pc[-1] - Y
     
+    def _getTextSign(self, facing: str, woodType: str) -> Block:
+        """ Get the text sign for the given direction. """
+        return signBlock(
+            wood = woodType, wall = True,
+            facing = {'n': 'north', 'e': 'east', 's': 'south', 'w': 'west'}[facing],
+            line1 = 'When', line2 = 'You\'re Lost',
+            line3 = 'in the', line4 = 'Darkness',
+            color = 'black', isGlowing = True
+        )
+
     @property
     def xSign(self) -> int:
         """ Sign of the x coordinate. """
@@ -87,62 +103,45 @@ class Interior:
         """ Sign of the z coordinate. """
         return {'n': -1, 's': 1}[self.district[0]]
 
-    @property
-    def otherDistricts(self) -> str:
-        """ The other districts. """
-        return [d for d in ['nw', 'ne', 'sw', 'se'] if d != self.district]
 
+class ExoticWoodInterior(Interior):
+    """ Exotic (crimson or warped) wood interior. """
 
-class CrimsonInterior(Interior):
-    """ Crimson interior. """
-
-    def __init__(self, tower: Tower) -> None:
+    def __init__(self, tower: Tower, kind: str) -> None:
+        assert kind in ['crimson', 'warped'], f'Invalid wood type: {kind}, must be crimson or warped.'
         super().__init__(tower)
+        self.kind = kind
         self.gardens = {district: None for district in ['nw', 'ne', 'sw', 'se']}
         for district in self.gardens.keys():
             xs, zs = {'w': -1, 'e': 1}[district[1]], {'n': -1, 's': 1}[district[0]]
             gO = self.o + ivec3(xs * 3, 0, zs * 3)
-            garden = NyliumGarden(gO, self.height, district)
+            garden = Garden(gO, self.kind, self.height, district)
             self.gardens[district] = garden
-        self.table = Table(self.o, 'crimson', 'crimson_fungus')
-        self._fixLanternChains(5)
+        self.table = Table(self.o, self.kind, self.kind + '_fungus')
+        if self.kind == 'crimson':
+            self._fixLanternChains(5)
+            self.lantern = Lantern
+        else:
+            self._fixLanternChains(10)
+            self.lantern = SoulLantern
         return
-
 
     def place(self, editor: Editor) -> None:
         """ Place the interior in Minecraft. """
-        editor.placeBlock(self.floorGenerator, CrimsonSlab)
-        editor.placeBlock(self.plinthGenerator, CrimsonPlanks)
+        editor.placeBlock(self.floorG, Block(f'{self.kind}_slab', {'type': 'bottom'}))
+        editor.placeBlock(self.plinthG, Block(f'{self.kind}_planks'))
         editor.placeBlock(self.ceilingG, BaseSlabPalette('top'))
         editor.placeBlock(self.lanternChainsG, Chain)
-        editor.placeBlock(self.lanternsG, Lantern)
-        xEntrance = self.o + ivec3(self.xSign * -self.radius, 4, 0)
-        zEntrance = self.o + ivec3(0, 4, self.zSign * -self.radius)
-        editor.placeBlock(xEntrance, self._getTextSign(self.district[1]))
-        editor.placeBlock(zEntrance, self._getTextSign(self.district[0]))
+        editor.placeBlock(self.lanternsG, self.lantern)
         for garden in self.gardens.values():
             garden.place(editor)
         self.table.place(editor)
+        xS, zS, r = self.xSign, self.zSign, self.radius
+        xE, zE = self.o + ivec3(xS * -r, 4, 0), self.o + ivec3(0, 4, zS * -r)
+        editor.placeBlock(xE, self._getTextSign(self.district[1], self.kind))
+        editor.placeBlock(zE, self._getTextSign(self.district[0], self.kind))
         return
-
-    @property
-    def invalidLanternPC(self) -> Sequence[ivec3]:
-        """ Invalid lantern point collection. """
-        invalid = []
-        for garden in self.gardens.values():
-            invalid.extend(garden.hyphaeG)
-            invalid.extend(garden.gardenBoundsG)
-        return invalid
-
-    def _getTextSign(self, facing: str) -> Block:
-        """ Get the text sign for the given direction. """
-        return signBlock(
-            wood = 'crimson', wall = True,
-            facing = {'n': 'north', 'e': 'east', 's': 'south', 'w': 'west'}[facing],
-            line1 = 'When', line2 = 'You\'re Lost',
-            line3 = 'in the', line4 = 'Darkness',
-            color = 'black', isGlowing = True
-        )
+        
 
 class Table:
     """ A table to be placed in the middle of a tower room. """
@@ -159,7 +158,7 @@ class Table:
         editor.placeBlock(self.cutoutG, Air)
         editor.placeBlock(self.legsG, Block(self.woodType + '_fence'))
         editor.placeBlock(self.topG, Block(self.woodType + '_slab'))
-        editor.placeBlock(self.o + Y*2, Pot(self.plant))
+        editor.placeBlock(self.o + Y*2, pot(self.plant))
         return
 
     @property
@@ -193,29 +192,32 @@ class Table:
         )
 
 
-class NyliumGarden:
-    """ A nylium garden to be placed in one of the corners of the crimson tower. """
+class Garden:
+    """ A garden (crimson or warped) to be placed in one of the corners of a tower. """
 
-    def __init__(self, origin: ivec3, height: int, district: str):
+    def __init__(self, origin: ivec3, kind: str, height: int, district: str):
         """
         origin: the origin of the garden (the closest corner to the tower room's origin).
-        height: room height
-        district: the district of the garden (nw, ne, sw, se)
+        kind: the kind of garden (nylium or warped).
+        height: room height.
+        district: the district the garden points to (nw, ne, sw, se).
         """
         self.o = origin
+        self.kind = kind
         self.height = height
         self.district = district
+        self.vinesName = 'weeping' if kind == 'crimson' else 'twisting'
         return
 
     def place(self, editor: Editor):
         """ Place the structure. """
-        editor.placeBlock(self.nyliumG, CrimsonNylium)
-        editor.placeBlock(self.hyphaeG, CrimsonHyphae)
-        editor.placeBlock(self.gardenBoundsG, CrimsonPlanks)
-        editor.placeBlock(self.gardenFencesG, CrimsonFence)
-        editor.placeBlock(self.crimsonRootsG, CrimsonRoots)
-        editor.placeBlock(self.weepingVinesG, WeepingVines)
-        return    
+        editor.placeBlock(self.nyliumG, Block(f'{self.kind}_nylium'))
+        editor.placeBlock(self.hyphaeG, Block(f'{self.kind}_hyphae'))
+        editor.placeBlock(self.boundsG, Block(f'{self.kind}_planks'))
+        editor.placeBlock(self.fencesG, Block(f'{self.kind}_fence'))
+        editor.placeBlock(self.rootsG, Block(f'{self.kind}_roots'))
+        editor.placeBlock(self.vinesG, Block(f'{self.vinesName}_vines'))
+        return
 
     @property
     def nyliumG(self) -> Generator[ivec3, None, None]:
@@ -228,7 +230,7 @@ class NyliumGarden:
         yield from [p + Y * self.height for p in self.nyliumG]
     
     @property
-    def gardenBoundsG(self) -> Generator[ivec3, None, None]:
+    def boundsG(self) -> Generator[ivec3, None, None]:
         """ Generator for the garden bounds. """
         o, h = self.o, self.height
         xs, zs = self.xSign, self.zSign
@@ -239,7 +241,7 @@ class NyliumGarden:
             yield from line3D(o + ivec3(xs * x, 1, zs * z), o + ivec3(xs * x, h-1, zs * z))
     
     @property
-    def gardenFencesG(self) -> Generator[ivec3, None, None]:
+    def fencesG(self) -> Generator[ivec3, None, None]:
         """ Generator for the garden fences. """
         o, h = self.o, self.height
         xs, zs = self.xSign, self.zSign
@@ -249,17 +251,32 @@ class NyliumGarden:
             yield from line3D(o + ivec3(0, 1, zs * z), o + ivec3(0, h-1, zs * z))
 
     @property
+    def vinesG(self) -> Generator[ivec3, None, None]:
+        """ Generator for the vines. """
+        return self.weepingVinesG if self.kind == 'crimson' else self.twistingVinesG
+
+    @property
     def weepingVinesG(self) -> Generator[ivec3, None, None]:
         """ Generator for the weeping vines. """
         candidates = list(self.hyphaeG)
         origins = [candidates[i] for i in np.random.choice(len(candidates), 5, replace=False)]
         for o in origins:
-            yield from [o - Y * i for i in range(1, np.random.randint(3, 7))]
+            yield from [o - Y * i for i in range(0, np.random.randint(3, 7))]
         return
 
     @property
-    def crimsonRootsG(self) -> Generator[ivec3, None, None]:
-        """ Generator for the crimson roots. """
+    def twistingVinesG(self) -> Generator[ivec3, None, None]:
+        """ Generator for the twisting vines. """
+        candidates = list(self.nyliumG)
+        candidates = list(filter(lambda p: p not in self.rootsG, candidates))
+        origins = [candidates[i] for i in np.random.choice(len(candidates), 5, replace=False)]
+        for o in origins:
+            yield from [o + Y * i for i in range(1, np.random.randint(4, 8))]
+        return
+
+    @property
+    def rootsG(self) -> Generator[ivec3, None, None]:
+        """ Generator for the roots. """
         candidates = list(self.nyliumG)
         yield from [candidates[i] + Y for i in np.random.choice(len(candidates), 5, replace=False)]
         return
