@@ -44,6 +44,21 @@ class TowerBase:
         """ Place the tower base in Minecraft. """
         editor.placeBlock(self.wallsG, self.m)
         return
+
+    def extend(self, editor: Editor, heightMap: np.ndarray, center: ivec3) -> int:
+        """
+        Extend the tower base to the ground.
+        Returns the max height needed to extend the tower base.
+        """
+        wallsPC = list(self.wallsG)
+        wallsSilhouette = set([p for p in wallsPC if p.y == self.o.y])
+        maxHeight = 0
+        for p in wallsSilhouette:
+            groundHeight = heightMap[p.x - center.x - 50, p.z - center.z - 50]
+            buildHeight = p.y - groundHeight
+            maxHeight = max(maxHeight, buildHeight)
+            editor.placeBlock(line3D(p, p - Y * buildHeight), self.m)
+        return maxHeight
     
     @property
     def wallsG(self) -> Generator[ivec3, None, None]:
@@ -290,10 +305,11 @@ class TowerStairway:
     A stairway spiraling up the tower.
     """
 
-    def __init__(self, towerBase: TowerBase, material: Block | Sequence[Block]) -> None:
+    def __init__(self, towerBase: TowerBase, material: Block | Sequence[Block], levels: int) -> None:
         """
         towerBase: TowerBase instance
         material: will be used for the stair blocks (base blocks is taken from towerBase)
+        levels: number of levels of the stairway
         """
         self.district = towerBase.district
         self.baseH = towerBase.height
@@ -301,6 +317,7 @@ class TowerStairway:
         self.stairM = material
         self.towerO = towerBase.o
         self.baseR = towerBase.radius
+        self.levels = levels
         return
 
     def place(self, editor: Editor) -> None:
@@ -312,12 +329,14 @@ class TowerStairway:
         self.stairM.setFacing(facing)
         editor.placeBlock(self.initialStairsG, self.stairM)
         editor.placeBlock(self.firstPlateauG, self.baseM)
-        for n in range(1, 5):
+        for n in range(1, self.levels+1):
             facing = self._next(facing)
             self.stairM.setFacing(facing)
             editor.placeBlock(self.setOfStairsG(n), self.stairM)
+            editor.placeBlock(self.setOfStairsAirG(n), Air)
             editor.placeBlock(self.setOfStairsSupportG(n), self.baseM)
             editor.placeBlock(self.plateauG(n), self.baseM)
+            editor.placeBlock(self.plateauAirG(n), Air)
         return
 
     @property
@@ -379,6 +398,11 @@ class TowerStairway:
                 line3D(o + ivec3(s *+i, -i, s*+1), o + ivec3(s *+i, -i, s*-1))
             ][n % 4]
     
+    def setOfStairsAirG(self, n: int) -> Generator[ivec3, None, None]:
+        """ Generator for the air blocks above the n-th set of stairs. """
+        for p in self.setOfStairsG(n):
+            yield from line3D(p + Y, p + Y * 5)
+    
     def setOfStairsSupportG(self, n: int) -> Generator[ivec3, None, None]:
         """ Generator for the support blocks under the n-th set of stairs. """
         yield from [p - Y for p in self.setOfStairsG(n)]
@@ -397,6 +421,13 @@ class TowerStairway:
                 ivec3(tx + xs * (r+3), y, tz + zs * (r+3))
             )
         )
+    
+    def plateauAirG(self, n: int) -> Generator[ivec3, None, None]:
+        """ Generator for the air blocks above the plateau connecting the n-th and the (n+1)-th set of stairs. """
+        tx, tz = self.towerO.x, self.towerO.z
+        for p in self.plateauG(n):
+            if np.linalg.norm(p - ivec3(tx, p.y, tz)) > self.baseR + 2:
+                yield from line3D(p + Y, p + Y * 5)
 
     @property
     def sign(self) -> int:
@@ -419,12 +450,13 @@ class Tower:
     """
 
     def __init__(self,
-            district: str,
+            district: str, interiorType: str,
             base: TowerBase, room: TowerRoom, roof: TowerRoof,
             roofAccess: TowerRoofAccess
         ) -> None:
         """
         district: one of 'nw', 'sw', 'se', 'ne'
+        interiorType: one of 'nostalgic', 'endgame', 'crimson', 'warped'
         base: TowerBase instance
         room: TowerRoom instance
         roof: TowerRoof instance
@@ -433,13 +465,16 @@ class Tower:
         ! Note: tower.o(rigin) is set to room.o(rigin) !
         """
         assert district in ['nw', 'sw', 'se', 'ne'], f'Invalid district: {district}'
+        assert interiorType in ['nostalgic', 'endgame', 'crimson', 'warped'], f'Invalid interior type: {interiorType}'
         self.district = district
+        self.interiorType = interiorType
 
         self.base = base
         self.room = room
         self.roof = roof
         self.roofAccess = roofAccess
         self.o = self.room.o
+        self.extensionHeight = 0  # will be set by the builder afterwards
         return
 
     def place(self, editor: Editor) -> None:
@@ -450,6 +485,7 @@ class Tower:
         self.roofAccess.place(editor)
         editor.placeBlock(self.entrancesG, Air)
         editor.placeBlock(self.windowsG, IronBars)
+        editor.placeBlock(self.chestPos, self.chestBlock)
         return
 
     @property
@@ -503,3 +539,20 @@ class Tower:
             self.o + ivec3(-1, 4, self.zSign * -self.room.radius),
             self.o + ivec3(+1, 4, self.zSign * -self.room.radius)
         )
+
+    @property
+    def chestPos(self) -> ivec3:
+        """ The position of the chest in the tower. """
+        return self.roof.o + ivec3(self.xSign * 5, 1, 0)
+    
+    @property
+    def chestBlock(self) -> Block:
+        """ The block object of the tower's chest. """
+        item = {
+            'nostalgic': 'minecraft:apple',
+            'crimson': 'minecraft:ender_eye',
+            'warped': 'minecraft:ender_eye',
+            'endgame': 'minecraft:golden_apple'
+        }[self.interiorType]
+        facing = {'e': 'east', 'w': 'west'}[self.district[1]]
+        return Block('chest', {'facing': facing}, data = f'{{Items:[{{Slot:13b,id:"{item}",Count:1b}}]}}')

@@ -13,11 +13,12 @@ from gdpc.vector_tools import addY, Y, X
 from structs.tower import Tower, TowerBase, TowerRoom, TowerRoof, TowerRoofAccess, TowerStairway
 from structs.bridge import Bridge
 from structs.castle import Castle, CastleOutline, CastleBasement, CastleRoof, CastleTree, CastleEntrance
-from structs.interior import Interior, ExoticWoodInterior, NostalgicInterior, EndGameInterior
+from structs.interior import ExoticWoodInterior, NostalgicInterior, EndGameInterior
 from generators import line3D
-from materials import BasePalette, BaseStairPalette, Concrete, CryingObsidian, TintedGlass
+from materials import BasePalette, BaseStairPalette, Concrete, CryingObsidian, TintedGlass, signBlock
+from helper import timer
 
-
+@timer
 def buildBounds(editor: Editor, buildRect: Box, y: int) -> None:
     """ Place the bounds of the build area. """
 
@@ -32,12 +33,14 @@ def buildBounds(editor: Editor, buildRect: Box, y: int) -> None:
     directions = [(-1, -1), (-1, +1), (+1, +1), (+1, -1)]
     colors = ['blue', 'yellow', 'green', 'red']
 
-    for (x, z), color in zip(directions, colors):
+    for (x, z), color, district in zip(directions, colors, ['NW', 'SW', 'SE', 'NE']):
         xz = center + ivec3(x * 50, 0, z * 50)
         editor.placeBlock(line3D(xz, xz + ivec3(0, 10, 0)), Concrete(color))
+        editor.placeBlock(xz + ivec3(0, 11, 0), signBlock('birch', facing='north', line2=district))
 
 
-def buildTowers(editor: Editor, center: ivec3, dry: bool = False) -> dict[str, Tower]:
+@timer
+def buildTowers(editor: Editor, center: ivec3, heightMap: np.ndarray) -> dict[str, Tower]:
     """
     Place the towers of the build area.
     Returns a dictionary with the towers.
@@ -54,8 +57,14 @@ def buildTowers(editor: Editor, center: ivec3, dry: bool = False) -> dict[str, T
         (+25, -35, +35, -25)  # NE
     ]
     towers = {district: None for district in ['nw', 'sw', 'se', 'ne']}
-    # towers = {district: None for district in ['nw']}
-    for (minx, minz, maxx, maxz), district in zip(bounds, towers.keys()):
+    interiorTypes = ['nostalgic', 'crimson', 'warped', 'endgame']
+    while True:
+        # shuffle until nostalgic and endgame differ by exactly 2 indices
+        np.random.shuffle(interiorTypes)
+        if np.abs(interiorTypes.index('nostalgic') - interiorTypes.index('endgame')) == 2:
+            break
+    
+    for (minx, minz, maxx, maxz), district, interiorType in zip(bounds, towers.keys(), interiorTypes):
         x = center.x + np.random.randint(minx, maxx)
         z = center.z + np.random.randint(minz, maxz)
 
@@ -91,20 +100,23 @@ def buildTowers(editor: Editor, center: ivec3, dry: bool = False) -> dict[str, T
         )
         tower = Tower(
             district = district,
+            interiorType = interiorType,
             base = towerBase,
             room = towerRoom,
             roof = towerRoof,
             roofAccess = towerRoofAccess
         )
 
-        if not dry:
-            tower.place(editor)
+        tower.place(editor)
+        maxHeight = towerBase.extend(editor, heightMap, center)
+        tower.extensionHeight = maxHeight
         towers[district] = tower
 
     return towers
 
 
-def buildCastle(editor: Editor, center: ivec3) -> Castle:
+@timer
+def buildCastle(editor: Editor, relativeCenter: ivec3, absoluteCenter: ivec3, heightMap: np.ndarray) -> Castle:
     """
     Place the castle in the center of the towers.
     Returns the castle.
@@ -113,7 +125,7 @@ def buildCastle(editor: Editor, center: ivec3) -> Castle:
     basePalette = BasePalette()
 
     castleOutline = CastleOutline(
-        origin = center,
+        origin = relativeCenter,
         baseMaterial = basePalette,
         wallHeight = 30,
         basementHeight = 10,
@@ -126,13 +138,13 @@ def buildCastle(editor: Editor, center: ivec3) -> Castle:
         width = castleOutline.width,
     )
     castleRoof = CastleRoof(
-        origin = center + Y * (castleOutline.wallHeight+1),
+        origin = relativeCenter + Y * (castleOutline.wallHeight+1),
         corners = castleOutline.corners,
         roofMaterial = TintedGlass,
         height = 8
     )
     castleTree = CastleTree(
-        origin = center + Y,
+        origin = relativeCenter + Y,
         maxTrunkHeight = 20
     )
     castle = Castle(
@@ -143,17 +155,14 @@ def buildCastle(editor: Editor, center: ivec3) -> Castle:
     )
 
     castle.place(editor)
+    castle.outline.extend(editor, heightMap, absoluteCenter)
 
     return castle
 
 
-def buildBridges(editor: Editor, towers: dict[str, Tower]) -> list[Bridge]:
-    """
-    Place the bridges between the towers.
-    Returns a list of the bridges.
-    """
-
-    bridges = []
+@timer
+def buildBridges(editor: Editor, towers: dict[str, Tower]) -> None:
+    """ Place the bridges between the towers. """
     
     basePalette = BasePalette()
     baseStairPalette = BaseStairPalette()
@@ -168,25 +177,24 @@ def buildBridges(editor: Editor, towers: dict[str, Tower]) -> list[Bridge]:
             hasRoof = False if i == noRoof else True
         )
         bridge.place(editor)
-        bridges.append(bridge)
     
-    return bridges
+    return
 
 
-def buildEntryPoints(
-        editor: Editor, castle: Castle, towers: dict[str, Tower]
-    ) -> tuple[TowerStairway, CastleEntrance]:
+@timer
+def buildEntryPoints(editor: Editor, castle: Castle, towers: dict[str, Tower]) -> None:
     """
-    Place a stairway around one randomly chosen tower.
+    Place a stairway around the tower with the nostalgic interior.
     On the opposite district, the castle entrance will be placed.
-    Returns the stairway and the castle entrance.
     """
 
-    dT = np.random.choice(['nw', 'sw', 'se', 'ne'])
-    tower = towers[dT]
+    tower = [t for t in towers.values() if t.interiorType == 'nostalgic'][0]
+    dT = tower.district
+    levels = (tower.base.height + tower.extensionHeight) // 5
     towerStairway = TowerStairway(
         towerBase = tower.base,
-        material = BaseStairPalette()
+        material = BaseStairPalette(),
+        levels = levels
     )
     towerStairway.place(editor)
 
@@ -199,28 +207,21 @@ def buildEntryPoints(
     )
     castleEntrance.place(editor)
 
-    return towerStairway, castleEntrance
+    return
 
 
-def buildInteriors(editor: Editor, towers: dict[str, Tower], referenceDistrict: str) -> None:
-    """
-    Place the interior of the towers.
-    The reference district is the tower with the stairway, it get the nostalgic interior.
-    This tower gets the nostalgic interior.
-    The opposite tower gets the end game interior.
-    The remaining two get ExoticWood interiors (one crimson, one warped).
-    """
+@timer
+def buildInteriors(editor: Editor, towers: dict[str, Tower]) -> None:
+    """ Place the interiors of the towers. """
 
-    exoticKind = 'warped'
-    interiors: dict[str, Interior] = {d: None for d in towers.keys()}
-    for d in interiors.keys():
-        if d == referenceDistrict:
-            interiors[d] = NostalgicInterior(towers[d])
-        elif d == {'nw': 'se', 'sw': 'ne', 'se': 'nw', 'ne': 'sw'}[referenceDistrict]:
-            interiors[d] = EndGameInterior(towers[d])
-        else:
-            interiors[d] = ExoticWoodInterior(towers[d], exoticKind)
-            exoticKind = 'crimson'
-        interiors[d].place(editor)
-
-    return interiors
+    for tower in towers.values():
+        if tower.interiorType == 'nostalgic':
+            interior = NostalgicInterior(tower)
+        elif tower.interiorType == 'crimson':
+            interior = ExoticWoodInterior(tower, 'crimson')
+        elif tower.interiorType == 'warped':
+            interior = ExoticWoodInterior(tower, 'warped')
+        elif tower.interiorType == 'endgame':
+            interior = EndGameInterior(tower)
+        interior.place(editor)
+    return

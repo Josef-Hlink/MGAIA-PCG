@@ -129,6 +129,7 @@ class NostalgicInterior(Interior):
         editor.placeBlock(self.o + ivec3(-1, 2, self.zSign * 2), Block('wall_torch', {'facing': {'n': 'south', 's': 'north'}[self.direction]}))
 
         editor.placeBlock(self.o + ivec3(2, 1, self.zSign * 8), Block('white_bed', {'part': 'foot', 'facing': self.facing}))
+        editor.placeBlock(self.o + ivec3(2, 2, self.zSign * 9), self.bedTextSign)
         editor.placeBlock(self.o + ivec3(0, 2, self.zSign * 10), pot('orange_tulip'))
         lr1, lr2 = ('left', 'right') if self.direction == 's' else ('right', 'left')
         editor.placeBlock(self.o + ivec3(-2, 1, self.zSign * 8), Block('chest', {'facing': 'east', 'type': lr1}))
@@ -190,6 +191,15 @@ class NostalgicInterior(Interior):
         return signBlock(
             wood = 'birch', wall = True, facing = {'n': 'south', 's': 'north'}[self.direction],
             line1 = 'live', line2 = 'laugh', line3 = 'love', line4 = 'craft',
+            color = 'black'
+        )
+
+    @property
+    def bedTextSign(self) -> Block:
+        """ The text sign for the bed. """
+        return signBlock(
+            wood = 'birch', wall = True, facing = 'west',
+            line1 = 'Don\'t', line2 = 'Forget', line3 = 'to', line4 = 'Sleep',
             color = 'black'
         )
 

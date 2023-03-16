@@ -14,7 +14,7 @@ from gdpc.minecraft_tools import signBlock
 from glm import ivec3
 
 from generators import fittingCylinder, cuboid3D, line3D, pyramid, cone
-from materials import Air, Glass, Netherite, Water, Lava, Beacon, Magma, EndStoneBricks, EndStoneBrickWall, SpruceLog, SpruceLeaves, GlowStone
+from materials import Air, Glass, Netherite, Water, Lava, Beacon, Magma, EndStoneBricks, EndStoneBrickWall, SpruceLog, SpruceLeaves
 
 
 class CastleOutline:
@@ -49,6 +49,16 @@ class CastleOutline:
         editor.placeBlock(self.hollowOutG, Air)
         return
 
+    def extend(self, editor: Editor, heightMap: np.ndarray, center: ivec3) -> None:
+        """ Extend the castle to the ground. """
+        wallsPC = list(self.wallsG) + list(self.cornerPillarsG)
+        minY = min([p.y for p in wallsPC])
+        wallsSilhouette = set([p for p in wallsPC if p.y == minY])
+        for p in wallsSilhouette:
+            groundHeight = heightMap[p.x - center.x - 50, p.z - center.z - 50]
+            buildHeight = p.y - groundHeight
+            editor.placeBlock(line3D(p, p - Y * buildHeight), self.baseM)
+
     @property
     def mainFloorG(self) -> Generator[ivec3, None, None]:
         """ Generator for positions of the main floor. """
@@ -82,6 +92,11 @@ class CastleOutline:
                 cornerPos + ivec3(+3, +self.wallHeight,     +3),
                 hollow = True
             )
+            yield from fittingCylinder(
+                cornerPos + ivec3(-3, -self.basementHeight-1, -3),
+                cornerPos + ivec3(+3, -self.basementHeight-1, +3),
+                tube = True
+            )
         return
 
     @property
@@ -103,7 +118,7 @@ class CastleOutline:
             else:
                 nextCornerPos = self.corners[list(self.corners.keys())[i+1]]
             yield from cuboid3D(
-                currentCornerPos - Y * self.basementHeight,
+                currentCornerPos - Y * (self.basementHeight+1),
                 nextCornerPos + Y * self.wallHeight
             )
         return
@@ -241,6 +256,7 @@ class CastleBasement:
             line2 = 'THE ANSWER IS', line3 = '(obviously)',
             color = 'black', isGlowing = True
         )
+
 
 class CastleRoof:
 

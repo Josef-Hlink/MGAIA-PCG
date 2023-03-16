@@ -5,6 +5,8 @@ Helper functions to make main.py more readable.
 """
 
 import sys
+from time import perf_counter
+from functools import wraps
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -69,5 +71,16 @@ def createOverview(editor: Editor, buildRect: Rect) -> None:
         ax.text(x, y, label, color='red', ha='center', va='center')
 
     fig.tight_layout()
-    fig.savefig('../../tmp/overview.png', dpi=300)
+    fig.savefig('../../overview.png', dpi=300)
     plt.close(fig)
+
+def timer(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        start = perf_counter()
+        print(f'\nStarting {func.__name__!r}... ', end='')
+        result = func(*args, **kwargs)
+        end = perf_counter()
+        print(f'\rFinished {func.__name__!r} in {end - start:.2f} seconds')
+        return result
+    return wrapper

@@ -4,7 +4,7 @@
 All materials will be defined here, so palettes as well as single blocks.
 """
 
-from typing import Sequence, Optional
+from typing import Sequence
 from gdpc import Block
 from gdpc.minecraft_tools import signBlock
 
@@ -71,18 +71,6 @@ class BaseStairPalette(Palette):
         for block in self.blocks:
             block.states['half'] = half
 
-randomColorGlassPalette = [Block(f'{color}_stained_glass') for color in
-    ['white', 'orange', 'magenta', 'light_blue', 'yellow', 'lime', 'pink', 'gray',
-     'light_gray', 'cyan', 'purple', 'blue', 'brown', 'green', 'red', 'black']
-]
-class RandomColorGlassPalette(Palette):
-    """
-    completely random color stained glass
-    """
-    def __init__(self):
-        super().__init__(randomColorGlassPalette)
-
-
 class Concrete:
     """ A simple colored concrete block. """
     def __init__(self, color: str):
@@ -90,21 +78,6 @@ class Concrete:
 
     def __iter__(self):
         return iter([self.block])
-
-class PurpurStairs:
-    """ A simple purpur stairs block. """
-    def __init__(self):
-        self.block = Block('purpur_stairs', {'facing': 'north', 'half': 'bottom'})
-
-    def setFacing(self, facing: str):
-        self.block.states['facing'] = facing
-
-    def setHalf(self, half: str):
-        self.block.states['half'] = half
-
-    def __iter__(self):
-        return iter([self.block])
-
 
 Air = Block('air')
 Netherite = Block('netherite_block')
@@ -119,21 +92,13 @@ SpruceLeaves = Block('spruce_leaves')
 EndStoneBricks = Block('end_stone_bricks')
 EndStoneBrickWall = Block('end_stone_brick_wall')
 Magma = Block('magma_block')
-
-
 Chain = Block('chain')
 Lantern = Block('lantern', {'hanging': 'true'})
 SoulLantern = Block('soul_lantern', {'hanging': 'true'})
-
 GrassBlock = Block('grass_block')
-
-
+SpruceLog = Block('spruce_log', {'axis': 'y'})
+Water = Block('water')
+Lava = Block('lava')
 
 def pot(plant: str) -> Block:
     return Block(f'potted_{plant}')
-
-
-SpruceLog = Block('spruce_log', {'axis': 'y'})
-
-Water = Block('water')
-Lava = Block('lava')

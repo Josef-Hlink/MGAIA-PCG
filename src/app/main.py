@@ -1,77 +1,58 @@
 #!/usr/bin/env python3
 
 import os
-from time import perf_counter
+import sys
+from time import perf_counter, strftime, gmtime
 
 import numpy as np
 
 from gdpc.vector_tools import addY
 from glm import ivec3
 
-from structs.tower import Tower, TowerStairway
+from structs.tower import Tower
 from structs.castle import Castle
-from structs.bridge import Bridge
-from structs.interior import Interior
 from builders import buildBounds, buildTowers, buildCastle, buildBridges, buildEntryPoints, buildInteriors
 from helper import getEditor, getBuildArea, createOverview
 
 
 def main():
-    # change cwd to src
+
     os.chdir(os.path.dirname(__file__))
 
-    # get editor object and build area to work with
     editor = getEditor()
     buildArea = getBuildArea(editor)
     buildRect = buildArea.toRect()
 
-    # load world slice
-    start = perf_counter()
     worldSlice = editor.loadWorldSlice(buildRect)
-    print(f'Getting world slice took {perf_counter() - start:.2f} seconds.')
 
-    # get height map and define center
-    heightMap: np.ndarray = worldSlice.heightmaps['MOTION_BLOCKING_NO_LEAVES']
+    heightMap: np.ndarray = worldSlice.heightmaps['OCEAN_FLOOR']
     base = np.max(heightMap)
 
-    # place red blocks to visualize bounds of build area
     start = perf_counter()
-    buildBounds(editor, buildRect, y = base)
-    print(f'Building bounds took {perf_counter() - start:.2f} seconds.')
 
-    center: ivec3 = addY(buildRect.center, base)
+    if sys.argv[1] == '--dev':
+        buildBounds(editor, buildRect, base)
 
-    # place towers
-    start = perf_counter()
-    towers: dict[str, Tower] = buildTowers(editor, center)
-    print(f'Building towers took {perf_counter() - start:.2f} seconds.')
+    absoluteCenter: ivec3 = addY(buildRect.center, base)
+
+    towers: dict[str, Tower] = buildTowers(editor, absoluteCenter, heightMap)
 
     relativeCenter = sum([tower.o for tower in towers.values()]) / 4
     
-    # place castle
-    start = perf_counter()
-    castle: Castle = buildCastle(editor, relativeCenter)
-    print(f'Building castle took {perf_counter() - start:.2f} seconds.')
+    castle: Castle = buildCastle(editor, relativeCenter, absoluteCenter, heightMap)
 
-    # build bridges between towers' entrances
-    start = perf_counter()
-    bridges: list[Bridge] = buildBridges(editor, towers)
-    print(f'Building bridges took {perf_counter() - start:.2f} seconds.')
+    buildBridges(editor, towers)
 
-    # place entry points
-    start = perf_counter()
-    towerStairway, castleEntrance = buildEntryPoints(editor, castle, towers)
-    print(f'Building entry points took {perf_counter() - start:.2f} seconds.')
+    buildEntryPoints(editor, castle, towers)
 
-    # place the interiors
-    start = perf_counter()
-    interiors: dict[str, Interior] = buildInteriors(editor, towers, towerStairway.district)
-    print(f'Building interiors took {perf_counter() - start:.2f} seconds.')
+    buildInteriors(editor, towers)
 
+    end = perf_counter()
+    formattedTime = strftime('%H:%M:%S', gmtime(end - start))
+    print(f'\nFinished all structures in {formattedTime}')
 
-    # create overview image with matplotlib
     createOverview(editor, buildRect)
-    print('Created overview.png')
+    print('\nCreated overview.png')
 
 
 if __name__ == '__main__':
