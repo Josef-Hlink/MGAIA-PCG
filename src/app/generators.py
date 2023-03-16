@@ -7,10 +7,7 @@ from glm import ivec3
 from gdpc.vector_tools import fittingCylinder, Y, cuboid3D, line3D
 
 
-def pyramid(
-        origin: ivec3, height: int,
-        hollow: bool = False
-    ) -> Generator[ivec3, None, None]:
+def pyramid(origin: ivec3, height: int, hollow: bool = False) -> Generator[ivec3, None, None]:
     """
     Generate the positions for the blocks of a pyramid.
 
@@ -38,10 +35,7 @@ def pyramid(
                 yield origin + ivec3(x, y, z)
 
 
-def cone(
-        origin: ivec3, height: int,
-        hollow: bool = False
-    ) -> Generator[ivec3, None, None]:
+def cone(origin: ivec3, height: int, hollow: bool = False) -> Generator[ivec3, None, None]:
     """
     Generate the positions for the blocks of a cone.
 
@@ -74,3 +68,16 @@ def cone(
 
     yield from allPoints
                 
+def triangle(origin: ivec3, size: int, direction: str) -> Generator[ivec3, None, None]:
+    """
+    Generate the positions for the blocks of an isosceles triangle in the xz plane.
+
+    Params:
+    - size (int): the size of the triangle sides (including origin)
+    - direction (str): the directions in which to extend the triangle
+    """
+    assert direction in ['nw', 'ne', 'sw', 'se']
+    xSign, zSign = {'nw': (-1, -1), 'ne': (+1, -1), 'sw': (-1, +1), 'se': (+1, +1)}[direction]
+    for x in range(size):
+        for z in range(size-x):
+                yield origin + ivec3(x * xSign, 0, z * zSign)

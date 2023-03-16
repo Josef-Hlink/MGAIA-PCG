@@ -6,6 +6,7 @@ All materials will be defined here, so palettes as well as single blocks.
 
 from typing import Sequence, Optional
 from gdpc import Block
+from gdpc.minecraft_tools import signBlock
 
 
 class Palette:
@@ -30,6 +31,23 @@ class BasePalette(Palette):
     """
     def __init__(self):
         super().__init__(basePalette)
+
+baseSlabPalette = [Block(id) for id in
+    8 * ['stone_brick_slab'] +
+    2 * ['mossy_stone_brick_slab']
+]
+class BaseSlabPalette(Palette):
+    """
+    80% stone brick slabs,
+    20% mossy stone brick slabs
+    """
+    def __init__(self, type: str = 'bottom'):
+        super().__init__(baseSlabPalette)
+        self.setType(type)
+
+    def setType(self, type: str):
+        for block in self.blocks:
+            block.states['type'] = type
 
 
 baseStairPalette = [Block(id) for id in
@@ -93,6 +111,7 @@ Netherite = Block('netherite_block')
 Diamond = Block('diamond_block')
 Beacon = Block('beacon')
 Glass = Block('glass')
+IronBars = Block('iron_bars')
 GlowStone = Block('glowstone')
 CryingObsidian = Block('crying_obsidian')
 TintedGlass = Block('tinted_glass')
@@ -101,7 +120,27 @@ EndStoneBricks = Block('end_stone_bricks')
 EndStoneBrickWall = Block('end_stone_brick_wall')
 Magma = Block('magma_block')
 
-DeepSlateBrickSlab = Block('deepslate_brick_slab', {'type': 'top'})
+
+Chain = Block('chain')
+FlowerPot = Block('flower_pot')
+
+
+CrimsonNylium = Block('crimson_nylium')
+CrimsonHyphae = Block('crimson_hyphae')
+CrimsonPlanks = Block('crimson_planks')
+CrimsonSlab = Block('crimson_slab', {'type': 'bottom'})
+CrimsonFence = Block('crimson_fence')
+CrimsonSign = Block('crimson_sign')
+CrimsonRoots = Block('crimson_roots')
+WeepingVines = Block('weeping_vines')
+
+Lantern = Block('lantern', {'hanging': 'true'})
+SoulLantern = Block('soul_lantern', {'hanging': 'true'})
+
+def Pot(plant: str) -> Block:
+    return Block(f'potted_{plant}')
+
+
 SpruceLog = Block('spruce_log', {'axis': 'y'})
 
 Water = Block('water')

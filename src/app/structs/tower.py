@@ -13,7 +13,7 @@ from gdpc.vector_tools import Y
 from glm import ivec3
 
 from generators import fittingCylinder, cuboid3D, line3D, pyramid, cone
-from materials import Air, Netherite, Beacon, GlowStone
+from materials import Air, Netherite, Beacon, GlowStone, IronBars
 
 
 class TowerBase:
@@ -448,8 +448,8 @@ class Tower:
         self.room.place(editor)
         self.roof.place(editor)
         self.roofAccess.place(editor)
-        for entranceG in self.entrancesG:
-            editor.placeBlock(entranceG, Air)
+        editor.placeBlock(self.entrancesG, Air)
+        editor.placeBlock(self.windowsG, IronBars)
         return
 
     @property
@@ -483,14 +483,23 @@ class Tower:
         """ Generator for positions of the two entrances. """
         x, z = self.xSign, self.zSign
         r = self.room.radius
-        return [cuboid3D(
+        yield from cuboid3D(
             self.o + ivec3(x*r, 1, -1),
             self.o + ivec3(x*r, 3, +1)
-        ), cuboid3D(
+        )
+        yield from cuboid3D(
             self.o + ivec3(-1, 1, z*r),
             self.o + ivec3(+1, 3, z*r)
-        )]
+        )
+    
     @property
-    def entrancesPC(self) -> Sequence[Sequence[ivec3]]:
-        """ Positions of the two entrances. """
-        return [list(g) for g in self.entrancesG]
+    def windowsG(self) -> Sequence[Generator[ivec3, None, None]]:
+        """ Generator for positions of the windows. """
+        yield from line3D(
+            self.o + ivec3(0, 2, self.zSign * -self.room.radius),
+            self.o + ivec3(0, 6, self.zSign * -self.room.radius)
+        )
+        yield from line3D(
+            self.o + ivec3(-1, 4, self.zSign * -self.room.radius),
+            self.o + ivec3(+1, 4, self.zSign * -self.room.radius)
+        )

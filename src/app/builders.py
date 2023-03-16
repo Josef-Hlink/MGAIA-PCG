@@ -10,9 +10,10 @@ from gdpc import geometry, Editor, Box
 from glm import ivec3
 from gdpc.vector_tools import addY, Y, X
 
-from structs.tower import TowerBase, TowerRoom, TowerRoof, Tower, TowerRoofAccess, TowerStairway
+from structs.tower import Tower, TowerBase, TowerRoom, TowerRoof, TowerRoofAccess, TowerStairway
 from structs.bridge import Bridge
-from structs.castle import CastleOutline, CastleBasement, CastleRoof, CastleTree, CastleEntrance, Castle
+from structs.castle import Castle, CastleOutline, CastleBasement, CastleRoof, CastleTree, CastleEntrance
+from structs.interior import Interior, CrimsonInterior
 from generators import line3D
 from materials import BasePalette, BaseStairPalette, Concrete, CryingObsidian, TintedGlass
 
@@ -53,6 +54,7 @@ def buildTowers(editor: Editor, center: ivec3, dry: bool = False) -> dict[str, T
         (+25, -35, +35, -25)  # NE
     ]
     towers = {district: None for district in ['nw', 'sw', 'se', 'ne']}
+    # towers = {district: None for district in ['nw']}
     for (minx, minz, maxx, maxz), district in zip(bounds, towers.keys()):
         x = center.x + np.random.randint(minx, maxx)
         z = center.z + np.random.randint(minz, maxz)
@@ -196,3 +198,19 @@ def buildEntryPoints(editor: Editor, castle: Castle, towers: dict[str, Tower]) -
     castleEntrance.place(editor)
 
     return towerStairway, castleEntrance
+
+
+def buildInteriors(editor: Editor, towers: dict[str, Tower]) -> None:
+    """
+    Place the interior of the towers.
+    """
+
+    interiors = {}
+
+    for tower in towers.values():
+        interior = CrimsonInterior(tower)
+        interior.place(editor)
+
+        interiors[tower.district] = interior
+
+    return interiors
