@@ -13,7 +13,7 @@ from gdpc.vector_tools import addY, Y, X
 from structs.tower import Tower, TowerBase, TowerRoom, TowerRoof, TowerRoofAccess, TowerStairway
 from structs.bridge import Bridge
 from structs.castle import Castle, CastleOutline, CastleBasement, CastleRoof, CastleTree, CastleEntrance
-from structs.interior import Interior, ExoticWoodInterior
+from structs.interior import Interior, ExoticWoodInterior, NostalgicInterior
 from generators import line3D
 from materials import BasePalette, BaseStairPalette, Concrete, CryingObsidian, TintedGlass
 
@@ -173,7 +173,9 @@ def buildBridges(editor: Editor, towers: dict[str, Tower]) -> list[Bridge]:
     return bridges
 
 
-def buildEntryPoints(editor: Editor, castle: Castle, towers: dict[str, Tower]) -> TowerStairway:
+def buildEntryPoints(
+        editor: Editor, castle: Castle, towers: dict[str, Tower]
+    ) -> tuple[TowerStairway, CastleEntrance]:
     """
     Place a stairway around one randomly chosen tower.
     On the opposite district, the castle entrance will be placed.
@@ -200,20 +202,38 @@ def buildEntryPoints(editor: Editor, castle: Castle, towers: dict[str, Tower]) -
     return towerStairway, castleEntrance
 
 
-def buildInteriors(editor: Editor, towers: dict[str, Tower]) -> None:
+def buildInteriors(editor: Editor, towers: dict[str, Tower], referenceDistrict: str) -> None:
     """
     Place the interior of the towers.
+    The reference district is the tower with the stairway, it get the nostalgic interior.
+    This tower gets the nostalgic interior.
+    The opposite tower gets no interior.
+    The remaining two get ExoticWood interiors (one crimson, one warped).
     """
 
-    interiors = {}
+    interiors: dict[str, Interior] = {}
+    rD = referenceDistrict
 
-    for tower in towers.values():
-        if tower.district[1] == 'w':
-            interior = ExoticWoodInterior(tower, 'crimson')
-        else:
-            interior = ExoticWoodInterior(tower, 'warped')
-        interior.place(editor)
+    nostalgicInterior = NostalgicInterior(towers[rD])
+    interiors[rD] = nostalgicInterior
 
-        interiors[tower.district] = interior
+    # opposite
+    opposite = {'nw': 'se', 'sw': 'ne', 'se': 'nw', 'ne': 'sw'}[rD]
+    interiors[opposite] = None
+
+    # crimson
+    remaining = [d for d in towers.keys() if d not in [rD, opposite]]
+    crimson = np.random.choice(remaining)
+    crimsonInterior = ExoticWoodInterior(towers[crimson], 'crimson')
+    interiors[crimson] = crimsonInterior
+
+    # warped
+    remaining.remove(crimson)
+    warpedInterior = ExoticWoodInterior(towers[remaining[0]], 'warped')
+    interiors[remaining[0]] = warpedInterior
+
+    for interior in interiors.values():
+        if interior is not None:
+            interior.place(editor)
 
     return interiors

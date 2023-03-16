@@ -60,12 +60,12 @@ def main():
 
     # place entry points
     start = perf_counter()
-    towerStairway, castleStairway = buildEntryPoints(editor, castle, towers)
+    towerStairway, castleEntrance = buildEntryPoints(editor, castle, towers)
     print(f'Building entry points took {perf_counter() - start:.2f} seconds.')
 
     # place the interiors
     start = perf_counter()
-    interiors: dict[str, Interior] = buildInteriors(editor, towers)
+    interiors: dict[str, Interior] = buildInteriors(editor, towers, towerStairway.district)
     print(f'Building interiors took {perf_counter() - start:.2f} seconds.')
 
 

@@ -125,6 +125,10 @@ Chain = Block('chain')
 Lantern = Block('lantern', {'hanging': 'true'})
 SoulLantern = Block('soul_lantern', {'hanging': 'true'})
 
+GrassBlock = Block('grass_block')
+
+
+
 def pot(plant: str) -> Block:
     return Block(f'potted_{plant}')
 
