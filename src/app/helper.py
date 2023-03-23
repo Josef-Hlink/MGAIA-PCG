@@ -25,9 +25,9 @@ def getEditor() -> Editor:
         editor.checkConnection()
     except InterfaceConnectionError:
         print(
-            f"Error: Could not connect to the GDMC HTTP interface at {editor.host}!\n"
-            "To use GDPC, you need to use a \"backend\" that provides the GDMC HTTP interface.\n"
-            "For example, by running Minecraft with the GDMC HTTP mod installed.\n"
+            f"Error: Could not connect to the GDMC HTTP interface at {editor.host}!\n" +
+            "To use GDPC, you need to use a \"backend\" that provides the GDMC HTTP interface.\n" +
+            "For example, by running Minecraft with the GDMC HTTP mod installed.\n" +
             f"See {__url__}/README.md for more information."
         )
         sys.exit(1)
@@ -42,9 +42,10 @@ def getBuildArea(editor: Editor) -> Box:
         buildArea = editor.getBuildArea()
     except BuildAreaNotSetError:
         print(
-            "Error: failed to get the build area!\n"
-            "Make sure to set the build area with the /setbuildarea command in-game.\n"
-            "For example: /setbuildarea ~0 ~0 ~0 ~100 ~100 ~100"
+            "Error: failed to get the build area!\n" +
+            "Make sure to set the build area with the /setbuildarea command in-game.\n" +
+            "For example: /setbuildarea ~-50 ~ ~-50 ~50 ~100 ~50\n" +
+            "(2D 100x100 area in the XZ-plane at Y=0, centered at player's position, 100 blocks high)"
         )
         sys.exit(1)
 
@@ -78,9 +79,9 @@ def timer(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         start = perf_counter()
-        print(f'\nStarting {func.__name__!r}... ', end='')
+        print(f'\nStarted building {func.__name__[5:].lower()}... ', end='')
         result = func(*args, **kwargs)
         end = perf_counter()
-        print(f'\rFinished {func.__name__!r} in {end - start:.2f} seconds')
+        print(f'\rFinished building {func.__name__[5:].lower()} in {end - start:.2f} seconds')
         return result
     return wrapper

@@ -55,3 +55,8 @@ A top-down view of the structure:
 A 3D view of the structure at night:
 
 ![at night](./night.png)
+
+## Note for TAs
+
+Sorry for not having written a report and having made changes to the repo after the deadline.
+I understand these changes will not be taken into account, they are purely for my (and your) convenience while playing the game.

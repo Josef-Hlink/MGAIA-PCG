@@ -25,8 +25,8 @@ def main():
 
     worldSlice = editor.loadWorldSlice(buildRect)
 
-    heightMap: np.ndarray = worldSlice.heightmaps['OCEAN_FLOOR']
-    base = np.max(heightMap)
+    heightMaps: tuple[np.ndarray] = (worldSlice.heightmaps['OCEAN_FLOOR'], worldSlice.heightmaps['MOTION_BLOCKING_NO_LEAVES'])
+    base = np.max(heightMaps[1])
 
     start = perf_counter()
 
@@ -35,11 +35,11 @@ def main():
 
     absoluteCenter: ivec3 = addY(buildRect.center, base)
 
-    towers: dict[str, Tower] = buildTowers(editor, absoluteCenter, heightMap)
+    towers: dict[str, Tower] = buildTowers(editor, absoluteCenter, heightMaps)
 
     relativeCenter = sum([tower.o for tower in towers.values()]) / 4
     
-    castle: Castle = buildCastle(editor, relativeCenter, absoluteCenter, heightMap)
+    castle: Castle = buildCastle(editor, relativeCenter, absoluteCenter, heightMaps)
 
     buildBridges(editor, towers)
 
@@ -48,8 +48,8 @@ def main():
     buildInteriors(editor, towers)
 
     end = perf_counter()
-    formattedTime = strftime('%H:%M:%S', gmtime(end - start))
-    print(f'\nFinished all structures in {formattedTime}')
+    formattedTime = strftime('%M:%S', gmtime(end - start))
+    print(f'\nFinished all structures in {formattedTime} min')
 
     createOverview(editor, buildRect)
     print('\nCreated overview.png')

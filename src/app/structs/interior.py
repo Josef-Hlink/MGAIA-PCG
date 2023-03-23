@@ -134,7 +134,12 @@ class NostalgicInterior(Interior):
         lr1, lr2 = ('left', 'right') if self.direction == 's' else ('right', 'left')
         editor.placeBlock(self.o + ivec3(-2, 1, self.zSign * 8), Block('chest', {'facing': 'east', 'type': lr1}))
         editor.placeBlock(self.o + ivec3(-2, 1, self.zSign * 9), Block('chest', {'facing': 'east', 'type': lr2}))
-        editor.placeBlock(self.o + ivec3(1, 1, self.zSign * 9), Block('chest', {'facing': {'n': 'south', 's': 'north'}[self.direction]}))
+        editor.placeBlock(
+            self.o + ivec3(1, 1, self.zSign * 9),
+            Block('chest',
+                {'facing': {'n': 'south', 's': 'north'}[self.direction]},
+                data = f'{{Items:[{{Slot:13b,id:"minecraft:iron_sword",Count:1b}}]}}'
+            ))
         editor.placeBlock(self.o + ivec3(2, 1, self.zSign * 4), Block('crafting_table'))
         editor.placeBlock(self.o + ivec3(2, 1, self.zSign * 6), Block('furnace', {'facing': 'west', 'lit': 'true'}))
         editor.placeBlock(self.o + ivec3(0, 1, self.zSign * 4), Block('bookshelf'))
@@ -234,6 +239,11 @@ class EndGameInterior(Interior):
         editor.placeBlock(xE, self._getTextSign(self.district[1], 'spruce'))
         editor.placeBlock(zE, self._getTextSign(self.district[0], 'spruce'))
         self.endPortal.place(editor)
+        editor.placeBlock(self.o + ivec3(0, 2, self.zSign * 7), Block('deepslate_tiles'))
+        editor.placeBlock(
+            self.o + ivec3(0, 3, self.zSign * 7),
+            Block('ender_chest', {'facing': {'n': 'south', 's': 'north'}[self.district[0]]})
+        )
 
     @property
     def invalidLanternPC(self) -> Sequence[ivec3]:
@@ -624,4 +634,8 @@ class EndPortal:
             )
         for x, z in ((-2, -2), (-2, 2), (2, -2), (2, 2)):
             editor.placeBlock(self.o + ivec3(x, 0, z), Block('deepslate_tiles'))
+        editor.placeBlock(
+            cuboid3D(self.o + ivec3(-2, 2, -2), self.o + ivec3(2, 2, 2)),
+            Block('deepslate_tile_slab', {'type': 'bottom'})
+        )
         return

@@ -49,13 +49,16 @@ class CastleOutline:
         editor.placeBlock(self.hollowOutG, Air)
         return
 
-    def extend(self, editor: Editor, heightMap: np.ndarray, center: ivec3) -> None:
+    def extend(self, editor: Editor, heightMaps: tuple[np.ndarray], center: ivec3) -> None:
         """ Extend the castle to the ground. """
+
+        heightMapOF, heightMapMBNL = heightMaps
         wallsPC = list(self.wallsG) + list(self.cornerPillarsG)
         minY = min([p.y for p in wallsPC])
         wallsSilhouette = set([p for p in wallsPC if p.y == minY])
         for p in wallsSilhouette:
-            groundHeight = heightMap[p.x - center.x - 50, p.z - center.z - 50]
+            x, z = p.x - center.x - 51, p.z - center.z - 51
+            groundHeight = min(heightMapOF[x, z], heightMapMBNL[x, z])
             buildHeight = p.y - groundHeight
             editor.placeBlock(line3D(p, p - Y * buildHeight), self.baseM)
 
@@ -455,7 +458,7 @@ class CastleEntrance:
         editor.placeBlock(self.lavaGuardG, self.material)
         editor.placeBlock(self.markingG, Magma)
         editor.placeBlock(self.cutoutsG, Air)
-        editor.placeBlock(self.poleG, Magma)
+        editor.placeBlock(self.poleG, self.material)
         editor.placeBlock(self.o + ivec3(self.xSign * 2, 1, self.zSign * 2), self.textSign)
         return
 

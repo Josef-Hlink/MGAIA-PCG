@@ -72,7 +72,7 @@ def buildTowers(editor: Editor, center: ivec3, heightMap: np.ndarray) -> dict[st
             origin = ivec3(x, center.y, z),
             district = district,
             material = basePalette,
-            height = 20,
+            height = 15,
             radius = 10
         )
         towerRoom = TowerRoom(
@@ -166,7 +166,7 @@ def buildBridges(editor: Editor, towers: dict[str, Tower]) -> None:
     
     basePalette = BasePalette()
     baseStairPalette = BaseStairPalette()
-    noRoof = np.random.randint(0, 4)
+    noRoof = [[0, 3], [1, 2]][np.random.randint(0, 2)]
 
     nw, sw, se, ne = towers.values()
     for i, towerSet in enumerate([(nw, sw), (nw, ne), (sw, se), (ne, se)]):
@@ -174,7 +174,7 @@ def buildBridges(editor: Editor, towers: dict[str, Tower]) -> None:
             towers = towerSet,
             baseMaterial = basePalette,
             stairMaterial = baseStairPalette,
-            hasRoof = False if i == noRoof else True
+            hasRoof = False if i in noRoof else True
         )
         bridge.place(editor)
     

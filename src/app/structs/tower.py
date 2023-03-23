@@ -45,16 +45,18 @@ class TowerBase:
         editor.placeBlock(self.wallsG, self.m)
         return
 
-    def extend(self, editor: Editor, heightMap: np.ndarray, center: ivec3) -> int:
+    def extend(self, editor: Editor, heightMaps: tuple[np.ndarray], center: ivec3) -> int:
         """
         Extend the tower base to the ground.
         Returns the max height needed to extend the tower base.
         """
+        heightMapOF, heightMapMBNL = heightMaps
         wallsPC = list(self.wallsG)
         wallsSilhouette = set([p for p in wallsPC if p.y == self.o.y])
         maxHeight = 0
         for p in wallsSilhouette:
-            groundHeight = heightMap[p.x - center.x - 50, p.z - center.z - 50]
+            x, z = p.x - center.x - 51, p.z - center.z - 51
+            groundHeight = min(heightMapOF[x, z], heightMapMBNL[x, z])
             buildHeight = p.y - groundHeight
             maxHeight = max(maxHeight, buildHeight)
             editor.placeBlock(line3D(p, p - Y * buildHeight), self.m)
@@ -322,13 +324,14 @@ class TowerStairway:
 
     def place(self, editor: Editor) -> None:
         """ Place all blocks of the tower spiral stair"""
-        editor.placeBlock(self.o, GlowStone)
         editor.placeBlock(self.baselineG, self.baseM)
         editor.placeBlock(self.cutoutG, Air)
         facing = {'w': 'north', 'e': 'south'}[self.district[1]]
         self.stairM.setFacing(facing)
         editor.placeBlock(self.initialStairsG, self.stairM)
         editor.placeBlock(self.firstPlateauG, self.baseM)
+        chestPos = self.o + ivec3(self.sign * -2, -2, self.sign * +2)
+        editor.placeBlock(chestPos, self.startChest)
         for n in range(1, self.levels+1):
             facing = self._next(facing)
             self.stairM.setFacing(facing)
@@ -336,8 +339,9 @@ class TowerStairway:
             if n > 1:
                 editor.placeBlock(self.setOfStairsAirG(n), Air)
             editor.placeBlock(self.setOfStairsSupportG(n), self.baseM)
-            editor.placeBlock(self.plateauG(n), self.baseM)
-            editor.placeBlock(self.plateauAirG(n), Air)
+            if n < self.levels:
+                editor.placeBlock(self.plateauG(n), self.baseM)
+                editor.placeBlock(self.plateauAirG(n), Air)
         return
 
     @property
@@ -427,8 +431,25 @@ class TowerStairway:
         """ Generator for the air blocks above the plateau connecting the n-th and the (n+1)-th set of stairs. """
         tx, tz = self.towerO.x, self.towerO.z
         for p in self.plateauG(n):
-            if np.linalg.norm(p - ivec3(tx, p.y, tz)) > self.baseR + 2:
+            if np.linalg.norm(p - ivec3(tx, p.y, tz)) > self.baseR + 1:
                 yield from line3D(p + Y, p + Y * 5)
+
+    @property
+    def startChest(self) -> Block:
+        """ The chest block that is placed at the top of the stairway. """
+        facing = {'e': 'north', 'w': 'south'}[self.district[1]]
+        items = [
+            ('minecraft:stone_sword', 1),
+            ('minecraft:bow', 1),
+            ('minecraft:bow', 1),
+            ('minecraft:arrow', 64),
+            ('minecraft:arrow', 64),
+        ]
+        data = '{Items:['
+        for i, (item, count) in enumerate(items):
+            data += f'{{Slot:{i}b,id:"{item}",Count:{count}b}},'
+        data = data[:-1] + ']}'
+        return Block('chest', {'facing': facing}, data = data)
 
     @property
     def sign(self) -> int:
